@@ -1,0 +1,28 @@
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+
+# Environments
+.venv/
+venv/
+
+# Local configuration
+.env
+
+# Uploads and temp files
+uploads/
+backend/uploads/
+
+# Local instance database at project root (duplicate; keep backend/instance/)
+instance/
+
+# Logs and temp artifacts
+frontend_server.*
+backend_server.*
+
+# OS files
+.DS_Store
+Thumbs.db
+
