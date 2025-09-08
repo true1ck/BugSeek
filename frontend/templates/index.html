@@ -1,0 +1,450 @@
+{% extends "base.html" %}
+
+{% block title %}Dashboard - BugSeek{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <h1 class="page-title">
+        <i class="fas fa-tachometer-alt"></i>
+        Welcome to BugSeek
+    </h1>
+    <p class="page-subtitle">
+        Your intelligent error log management system with AI-powered insights
+    </p>
+</div>
+
+<!-- Statistics Cards -->
+<div class="stats">
+    <div class="stat-card">
+        <div class="stat-icon">
+            <i class="fas fa-file-alt"></i>
+        </div>
+        <div class="stat-info">
+            <div class="stat-number">{{ stats.get('total_logs', 0) }}</div>
+            <div class="stat-label">Total Logs</div>
+        </div>
+        <div class="stat-trend positive">
+            <i class="fas fa-arrow-up"></i>
+            <span>+12%</span>
+        </div>
+    </div>
+    
+    <div class="stat-card">
+        <div class="stat-icon success">
+            <i class="fas fa-check-circle"></i>
+        </div>
+        <div class="stat-info">
+            <div class="stat-number">{{ stats.get('logs_with_solutions', 0) }}</div>
+            <div class="stat-label">With Solutions</div>
+        </div>
+        <div class="stat-trend positive">
+            <i class="fas fa-arrow-up"></i>
+            <span>+8%</span>
+        </div>
+    </div>
+    
+    <div class="stat-card">
+        <div class="stat-icon warning">
+            <i class="fas fa-percentage"></i>
+        </div>
+        <div class="stat-info">
+            <div class="stat-number">{{ "%.1f"|format(stats.get('solution_rate', 0)) }}%</div>
+            <div class="stat-label">Solution Rate</div>
+        </div>
+        <div class="stat-trend positive">
+            <i class="fas fa-arrow-up"></i>
+            <span>+5%</span>
+        </div>
+    </div>
+    
+    <div class="stat-card">
+        <div class="stat-icon info">
+            <i class="fas fa-users"></i>
+        </div>
+        <div class="stat-info">
+            <div class="stat-number">{{ stats.get('teams_count', 0) }}</div>
+            <div class="stat-label">Active Teams</div>
+        </div>
+        <div class="stat-trend neutral">
+            <i class="fas fa-minus"></i>
+            <span>0%</span>
+        </div>
+    </div>
+</div>
+
+<!-- Main Content Grid -->
+<div class="grid">
+    <!-- Quick Actions Card -->
+    <div class="card feature-card">
+        <div class="card-header">
+            <h3>
+                <i class="fas fa-rocket"></i>
+                Quick Actions
+            </h3>
+            <p>Get started with BugSeek's powerful features</p>
+        </div>
+        <div class="card-body">
+            <div class="action-buttons">
+                <a href="/upload" class="btn btn-primary btn-lg">
+                    <i class="fas fa-cloud-upload-alt"></i>
+                    Upload New Log
+                </a>
+                <a href="/logs" class="btn btn-outline btn-lg">
+                    <i class="fas fa-list"></i>
+                    View All Logs
+                </a>
+            </div>
+        </div>
+    </div>
+    
+    <!-- System Health Card -->
+    <div class="card status-card">
+        <div class="card-header">
+            <h3>
+                <i class="fas fa-heartbeat"></i>
+                System Health
+            </h3>
+            <p>Real-time system status monitoring</p>
+        </div>
+        <div class="card-body">
+            <div class="health-metrics">
+                <div class="health-item">
+                    <div class="health-label">API Status</div>
+                    <div id="api-status" class="loading">
+                        <i class="fas fa-spinner fa-spin"></i>
+                        Checking...
+                    </div>
+                </div>
+                <div class="health-item">
+                    <div class="health-label">Frontend</div>
+                    <div class="health-status online">
+                        <i class="fas fa-check-circle"></i>
+                        Online
+                    </div>
+                </div>
+                <div class="health-item">
+                    <div class="health-label">Response Time</div>
+                    <div class="health-status good">
+                        <i class="fas fa-clock"></i>
+                        <span id="response-time">~ms</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Feature Highlights -->
+<div class="card features-overview">
+    <div class="card-header text-center">
+        <h2>
+            <i class="fas fa-star"></i>
+            Platform Features
+        </h2>
+        <p>Discover what makes BugSeek the ultimate error log management solution</p>
+    </div>
+    <div class="features-grid">
+        <div class="feature-item">
+            <div class="feature-icon">
+                <i class="fas fa-brain"></i>
+            </div>
+            <h4>AI-Powered Analysis</h4>
+            <p>Advanced machine learning algorithms analyze your logs to provide intelligent insights and automated solutions.</p>
+        </div>
+        <div class="feature-item">
+            <div class="feature-icon">
+                <i class="fas fa-search-plus"></i>
+            </div>
+            <h4>Smart Search & Filter</h4>
+            <p>Quickly find specific errors with our powerful search and filtering capabilities across all your logs.</p>
+        </div>
+        <div class="feature-item">
+            <div class="feature-icon">
+                <i class="fas fa-users-cog"></i>
+            </div>
+            <h4>Team Collaboration</h4>
+            <p>Collaborate effectively with your team members and track error resolution across different modules.</p>
+        </div>
+        <div class="feature-item">
+            <div class="feature-icon">
+                <i class="fas fa-chart-line"></i>
+            </div>
+            <h4>Analytics Dashboard</h4>
+            <p>Get comprehensive insights into your error patterns, resolution rates, and team performance metrics.</p>
+        </div>
+    </div>
+</div>
+
+<style>
+/* Additional Dashboard Styles */
+.page-header {
+    text-align: center;
+    margin-bottom: 3rem;
+}
+
+.stat-card {
+    display: flex;
+    align-items: center;
+    gap: 1.5rem;
+    padding: 2rem;
+    position: relative;
+}
+
+.stat-icon {
+    width: 60px;
+    height: 60px;
+    border-radius: var(--radius-md);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.75rem;
+    color: white;
+    background: var(--gradient-primary);
+    flex-shrink: 0;
+}
+
+.stat-icon.success {
+    background: var(--gradient-success);
+}
+
+.stat-icon.warning {
+    background: var(--gradient-warning);
+}
+
+.stat-icon.info {
+    background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%);
+}
+
+.stat-info {
+    flex: 1;
+}
+
+.stat-trend {
+    display: flex;
+    align-items: center;
+    gap: 0.25rem;
+    font-size: 0.875rem;
+    font-weight: 600;
+    padding: 0.25rem 0.75rem;
+    border-radius: var(--radius-full);
+}
+
+.stat-trend.positive {
+    color: var(--success);
+    background: rgba(16, 185, 129, 0.1);
+}
+
+.stat-trend.neutral {
+    color: var(--gray-500);
+    background: rgba(107, 114, 128, 0.1);
+}
+
+.feature-card {
+    background: var(--gradient-primary);
+    color: white;
+}
+
+.feature-card .card-header h3,
+.feature-card .card-header p {
+    color: white;
+}
+
+.card-header {
+    margin-bottom: 1.5rem;
+}
+
+.card-header h3 {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    font-size: 1.25rem;
+    margin-bottom: 0.5rem;
+}
+
+.card-header p {
+    color: var(--gray-600);
+    margin: 0;
+}
+
+.action-buttons {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+}
+
+.btn-lg {
+    padding: 1rem 2rem;
+    font-size: 1rem;
+    width: 100%;
+    justify-content: center;
+}
+
+.health-metrics {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+}
+
+.health-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0.75rem 0;
+    border-bottom: 1px solid var(--gray-200);
+}
+
+.health-item:last-child {
+    border-bottom: none;
+}
+
+.health-label {
+    font-weight: 600;
+    color: var(--gray-700);
+}
+
+.health-status {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-weight: 600;
+}
+
+.health-status.online {
+    color: var(--success);
+}
+
+.health-status.good {
+    color: var(--info);
+}
+
+.features-overview {
+    background: var(--gradient-primary);
+    color: white;
+}
+
+.features-overview .card-header h2,
+.features-overview .card-header p {
+    color: white;
+}
+
+.features-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+    gap: 2rem;
+    margin-top: 2rem;
+}
+
+.feature-item {
+    text-align: center;
+    padding: 1.5rem;
+}
+
+.feature-icon {
+    width: 80px;
+    height: 80px;
+    margin: 0 auto 1rem;
+    border-radius: var(--radius-lg);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 2rem;
+    background: rgba(255, 255, 255, 0.2);
+    backdrop-filter: blur(10px);
+}
+
+.feature-item h4 {
+    color: white;
+    margin-bottom: 1rem;
+    font-size: 1.125rem;
+}
+
+.feature-item p {
+    color: rgba(255, 255, 255, 0.9);
+    line-height: 1.6;
+}
+
+.text-center {
+    text-align: center;
+}
+
+@media (max-width: 768px) {
+    .action-buttons {
+        flex-direction: column;
+    }
+    
+    .features-grid {
+        grid-template-columns: 1fr;
+    }
+    
+    .stat-card {
+        flex-direction: column;
+        text-align: center;
+        gap: 1rem;
+    }
+}
+</style>
+
+<script>
+// Enhanced dashboard functionality
+document.addEventListener('DOMContentLoaded', function() {
+    const startTime = performance.now();
+    
+    // Check API health with timing
+    fetch('/api/health')
+        .then(response => {
+            const endTime = performance.now();
+            const responseTime = Math.round(endTime - startTime);
+            document.getElementById('response-time').textContent = responseTime + 'ms';
+            
+            return response.json();
+        })
+        .then(data => {
+            const statusEl = document.getElementById('api-status');
+            if (data.api_status === 'connected') {
+                statusEl.innerHTML = '<i class="fas fa-check-circle"></i> Connected';
+                statusEl.className = 'health-status online';
+            } else {
+                statusEl.innerHTML = '<i class="fas fa-exclamation-triangle"></i> Disconnected';
+                statusEl.className = 'health-status offline';
+            }
+        })
+        .catch(error => {
+            const statusEl = document.getElementById('api-status');
+            statusEl.innerHTML = '<i class="fas fa-times-circle"></i> Error';
+            statusEl.className = 'health-status offline';
+            
+            document.getElementById('response-time').textContent = 'N/A';
+        });
+    
+    // Animate numbers
+    const statNumbers = document.querySelectorAll('.stat-number');
+    statNumbers.forEach(el => {
+        const finalValue = parseInt(el.textContent) || 0;
+        if (finalValue > 0) {
+            animateValue(el, 0, finalValue, 1500);
+        }
+    });
+});
+
+function animateValue(element, start, end, duration) {
+    const startTimestamp = performance.now();
+    
+    const step = (timestamp) => {
+        const progress = Math.min((timestamp - startTimestamp) / duration, 1);
+        const current = Math.floor(progress * (end - start) + start);
+        
+        if (element.textContent.includes('%')) {
+            element.textContent = current + '%';
+        } else {
+            element.textContent = current;
+        }
+        
+        if (progress < 1) {
+            requestAnimationFrame(step);
+        }
+    };
+    
+    requestAnimationFrame(step);
+}
+</script>
+{% endblock %}

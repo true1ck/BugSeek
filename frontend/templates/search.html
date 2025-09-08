@@ -1,0 +1,816 @@
+{% extends "base.html" %}
+
+{% block title %}Advanced Search - BugSeek{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <h1 class="page-title">
+        <i class="fas fa-search-plus"></i>
+        Advanced Search
+    </h1>
+    <p class="page-subtitle">
+        Find specific error logs with powerful filtering and search capabilities
+    </p>
+</div>
+
+<!-- Advanced Search Form -->
+<div class="card search-card">
+    <div class="card-header">
+        <h3>
+            <i class="fas fa-filter"></i>
+            Search & Filter Options
+        </h3>
+        <p>Use multiple filters to narrow down your search results</p>
+    </div>
+    
+    <form id="searchForm" method="GET" action="/search">
+        <div class="search-grid">
+            <!-- Text Search -->
+            <div class="search-section">
+                <h4><i class="fas fa-keyboard"></i> Text Search</h4>
+                <div class="form-group">
+                    <label for="search">Search Keywords</label>
+                    <input type="text" id="search" name="search" class="form-control" 
+                    placeholder="Enter keywords to search in log content and files..."
+                           value="{{ request.args.get('search', '') }}">
+                    <small>Search across log content, file names, and metadata</small>
+                </div>
+            </div>
+
+            <!-- Team & Module Filters -->
+            <div class="search-section">
+                <h4><i class="fas fa-users"></i> Team & Module</h4>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="team">Team Name</label>
+                        <select id="team" name="team" class="form-control">
+                            <option value="">All Teams</option>
+                            <option value="Frontend" {{ 'selected' if request.args.get('team') == 'Frontend' }}>Frontend</option>
+                            <option value="Backend" {{ 'selected' if request.args.get('team') == 'Backend' }}>Backend</option>
+                            <option value="Mobile" {{ 'selected' if request.args.get('team') == 'Mobile' }}>Mobile</option>
+                            <option value="DevOps" {{ 'selected' if request.args.get('team') == 'DevOps' }}>DevOps</option>
+                            <option value="QA" {{ 'selected' if request.args.get('team') == 'QA' }}>QA</option>
+                            <option value="Data Science" {{ 'selected' if request.args.get('team') == 'Data Science' }}>Data Science</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="module">Module</label>
+                        <select id="module" name="module" class="form-control">
+                            <option value="">All Modules</option>
+                            <option value="Authentication" {{ 'selected' if request.args.get('module') == 'Authentication' }}>Authentication</option>
+                            <option value="Payment" {{ 'selected' if request.args.get('module') == 'Payment' }}>Payment</option>
+                            <option value="User Management" {{ 'selected' if request.args.get('module') == 'User Management' }}>User Management</option>
+                            <option value="API Gateway" {{ 'selected' if request.args.get('module') == 'API Gateway' }}>API Gateway</option>
+                            <option value="Database" {{ 'selected' if request.args.get('module') == 'Database' }}>Database</option>
+                            <option value="Notification" {{ 'selected' if request.args.get('module') == 'Notification' }}>Notification</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Owner Details -->
+            <div class="search-section">
+                <h4><i class="fas fa-user"></i> Owner Details</h4>
+                <div class="form-group">
+                    <label for="owner">Owner Email</label>
+                    <input type="text" id="owner" name="owner" class="form-control" 
+                           placeholder="Enter owner email" 
+                           value="{{ request.args.get('owner', '') }}">
+                </div>
+            </div>
+
+            <!-- Date Range -->
+            <div class="search-section">
+                <h4><i class="fas fa-calendar-alt"></i> Date Range</h4>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="date_from">From Date</label>
+                        <input type="date" id="date_from" name="date_from" class="form-control" 
+                               value="{{ request.args.get('date_from', '') }}">
+                    </div>
+                    <div class="form-group">
+                        <label for="date_to">To Date</label>
+                        <input type="date" id="date_to" name="date_to" class="form-control" 
+                               value="{{ request.args.get('date_to', '') }}">
+                    </div>
+                </div>
+                <div class="quick-dates">
+                    <button type="button" class="btn btn-outline" onclick="setDateRange('today')">Today</button>
+                    <button type="button" class="btn btn-outline" onclick="setDateRange('week')">Last 7 Days</button>
+                    <button type="button" class="btn btn-outline" onclick="setDateRange('month')">Last 30 Days</button>
+                </div>
+            </div>
+
+            <!-- Solution Status -->
+            <div class="search-section">
+                <h4><i class="fas fa-lightbulb"></i> Solution Status</h4>
+                <div class="form-group">
+                    <label for="solution_status">Solution Available</label>
+                    <select id="solution_status" name="solution_status" class="form-control">
+                        <option value="">All Status</option>
+                        <option value="true" {{ 'selected' if request.args.get('solution_status') == 'true' }}>✅ Solution Available</option>
+                        <option value="false" {{ 'selected' if request.args.get('solution_status') == 'false' }}>❌ No Solution</option>
+                    </select>
+                </div>
+            </div>
+
+            <!-- File Size -->
+            <div class="search-section">
+                <h4><i class="fas fa-file-alt"></i> File Size</h4>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="file_size_min">Min Size (KB)</label>
+                        <input type="number" id="file_size_min" name="file_size_min" class="form-control" 
+                               placeholder="0" min="0" value="{{ request.args.get('file_size_min', '') }}">
+                    </div>
+                    <div class="form-group">
+                        <label for="file_size_max">Max Size (KB)</label>
+                        <input type="number" id="file_size_max" name="file_size_max" class="form-control" 
+                               placeholder="1000000" min="0" value="{{ request.args.get('file_size_max', '') }}">
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Search Actions -->
+        <div class="search-actions">
+            <button type="submit" class="btn btn-primary btn-lg">
+                <i class="fas fa-search"></i>
+                Search Logs
+            </button>
+            <button type="button" class="btn btn-outline" onclick="clearFilters()">
+                <i class="fas fa-eraser"></i>
+                Clear Filters
+            </button>
+            <button type="button" class="btn btn-outline" id="saveSearchBtn">
+                <i class="fas fa-bookmark"></i>
+                Save Search
+            </button>
+        </div>
+    </form>
+</div>
+
+<!-- Saved Searches -->
+<div class="card saved-searches">
+    <div class="card-header">
+        <h3>
+            <i class="fas fa-bookmark"></i>
+            Saved Searches
+        </h3>
+        <p>Quick access to your frequently used search filters</p>
+    </div>
+    <div id="savedSearchesList">
+        <div class="saved-search-item">
+            <span class="search-name">Recent Frontend Errors</span>
+            <span class="search-params">Team: Frontend | Last 7 days</span>
+            <button class="btn btn-outline btn-sm" onclick="loadSavedSearch('frontend-recent')">Load</button>
+        </div>
+        <div class="saved-search-item">
+            <span class="search-name">Critical Database Issues</span>
+            <span class="search-params">Module: Database | No Solution</span>
+            <button class="btn btn-outline btn-sm" onclick="loadSavedSearch('db-critical')">Load</button>
+        </div>
+    </div>
+</div>
+
+<!-- Search Results -->
+<div id="searchResults" class="search-results" style="display: none;">
+    <div class="card">
+        <div class="card-header">
+            <h3>
+                <i class="fas fa-list"></i>
+                Search Results
+            </h3>
+            <div class="result-controls">
+                <div class="sort-options">
+                    <label for="sortBy">Sort by:</label>
+                    <select id="sortBy" name="sort" class="form-control" style="width: auto; display: inline-block;">
+                        <option value="created_desc">Newest First</option>
+                        <option value="created_asc">Oldest First</option>
+                        <option value="owner">Owner</option>
+                        <option value="team">Team Name</option>
+                        <option value="file_size">File Size</option>
+                    </select>
+                </div>
+                <div class="view-toggle">
+                    <button class="btn btn-outline" id="gridViewBtn" onclick="setViewMode('grid')">
+                        <i class="fas fa-th"></i>
+                    </button>
+                    <button class="btn btn-outline active" id="listViewBtn" onclick="setViewMode('list')">
+                        <i class="fas fa-list"></i>
+                    </button>
+                </div>
+            </div>
+        </div>
+        <div id="resultsContainer">
+            <!-- Results will be populated here via JavaScript -->
+        </div>
+    </div>
+</div>
+
+<style>
+/* Advanced Search Styles */
+.search-card {
+    background: var(--gradient-primary);
+    color: white;
+    border: none;
+}
+
+.search-card .card-header h3,
+.search-card .card-header p {
+    color: white;
+}
+
+.search-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+    gap: 2rem;
+    margin-bottom: 2rem;
+}
+
+.search-section {
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: var(--radius-md);
+    padding: 1.5rem;
+    backdrop-filter: blur(10px);
+}
+
+.search-section h4 {
+    color: white;
+    font-size: 1rem;
+    font-weight: 600;
+    margin-bottom: 1rem;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.search-section .form-group {
+    margin-bottom: 1rem;
+}
+
+.search-section .form-group:last-child {
+    margin-bottom: 0;
+}
+
+.search-section label {
+    color: rgba(255, 255, 255, 0.9);
+    font-weight: 500;
+    font-size: 0.9rem;
+}
+
+.search-section .form-control {
+    background: rgba(255, 255, 255, 0.9);
+    border: 1px solid rgba(255, 255, 255, 0.3);
+    color: var(--gray-800);
+}
+
+.search-section .form-control:focus {
+    background: white;
+    border-color: white;
+    box-shadow: 0 0 0 3px rgba(255, 255, 255, 0.2);
+}
+
+.search-section small {
+    color: rgba(255, 255, 255, 0.7);
+    font-size: 0.8rem;
+}
+
+.form-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1rem;
+}
+
+.quick-dates {
+    display: flex;
+    gap: 0.5rem;
+    margin-top: 0.5rem;
+}
+
+.quick-dates .btn {
+    background: rgba(255, 255, 255, 0.1);
+    border: 1px solid rgba(255, 255, 255, 0.3);
+    color: white;
+    font-size: 0.8rem;
+    padding: 0.5rem 1rem;
+}
+
+.quick-dates .btn:hover {
+    background: rgba(255, 255, 255, 0.2);
+}
+
+.search-actions {
+    display: flex;
+    gap: 1rem;
+    justify-content: center;
+    flex-wrap: wrap;
+}
+
+.search-actions .btn {
+    min-width: 160px;
+}
+
+/* Saved Searches */
+.saved-searches {
+    margin-bottom: 2rem;
+}
+
+.saved-search-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 1rem;
+    background: var(--gray-50);
+    border-radius: var(--radius-sm);
+    margin-bottom: 0.5rem;
+}
+
+.saved-search-item:last-child {
+    margin-bottom: 0;
+}
+
+.search-name {
+    font-weight: 600;
+    color: var(--gray-800);
+}
+
+.search-params {
+    color: var(--gray-600);
+    font-size: 0.9rem;
+    flex: 1;
+    margin-left: 1rem;
+}
+
+/* Results */
+.result-controls {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+}
+
+.sort-options {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.sort-options label {
+    font-weight: 500;
+    color: var(--gray-700);
+}
+
+.view-toggle {
+    display: flex;
+    gap: 0.25rem;
+}
+
+.view-toggle .btn {
+    padding: 0.5rem;
+    min-width: auto;
+}
+
+.view-toggle .btn.active {
+    background: var(--primary);
+    color: white;
+}
+
+/* Grid View */
+.results-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+    gap: 1.5rem;
+    margin-top: 1rem;
+}
+
+.result-card {
+    background: white;
+    border: 1px solid var(--gray-200);
+    border-radius: var(--radius-md);
+    padding: 1.5rem;
+    transition: all 0.3s ease;
+}
+
+.result-card:hover {
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-lg);
+    border-color: var(--primary);
+}
+
+.result-card-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 1rem;
+}
+
+.result-card-title {
+    font-weight: 600;
+    color: var(--gray-800);
+    font-size: 1rem;
+}
+
+.result-card-status {
+    font-size: 0.8rem;
+}
+
+.result-card-meta {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0.5rem;
+    font-size: 0.85rem;
+    color: var(--gray-600);
+    margin-bottom: 1rem;
+}
+
+.result-card-actions {
+    display: flex;
+    gap: 0.5rem;
+}
+
+/* List View */
+.results-table {
+    width: 100%;
+    margin-top: 1rem;
+}
+
+/* Loading States */
+.loading-spinner {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 3rem;
+    color: var(--gray-500);
+}
+
+.loading-spinner i {
+    animation: spin 1s linear infinite;
+    margin-right: 0.5rem;
+}
+
+@keyframes spin {
+    from { transform: rotate(0deg); }
+    to { transform: rotate(360deg); }
+}
+
+/* Mobile Responsive */
+@media (max-width: 768px) {
+    .search-grid {
+        grid-template-columns: 1fr;
+        gap: 1rem;
+    }
+    
+    .form-row {
+        grid-template-columns: 1fr;
+    }
+    
+    .search-actions {
+        flex-direction: column;
+    }
+    
+    .search-actions .btn {
+        width: 100%;
+        min-width: auto;
+    }
+    
+    .result-controls {
+        flex-direction: column;
+        align-items: stretch;
+        gap: 1rem;
+    }
+    
+    .results-grid {
+        grid-template-columns: 1fr;
+    }
+}
+</style>
+
+<script>
+// Advanced Search Functionality
+document.addEventListener('DOMContentLoaded', function() {
+    const searchForm = document.getElementById('searchForm');
+    const resultsContainer = document.getElementById('searchResults');
+    let currentViewMode = 'list';
+    
+    // Handle form submission
+    searchForm.addEventListener('submit', function(e) {
+        e.preventDefault();
+        performSearch();
+    });
+    
+    // Auto-search on filter change (with debounce)
+    const searchInput = document.getElementById('search');
+    let searchTimeout;
+    
+    searchInput.addEventListener('input', function() {
+        clearTimeout(searchTimeout);
+        searchTimeout = setTimeout(() => {
+            if (searchInput.value.length >= 3 || searchInput.value.length === 0) {
+                performSearch();
+            }
+        }, 500);
+    });
+    
+    // Filter change handlers
+    const filterElements = searchForm.querySelectorAll('select, input[type="date"], input[type="number"]');
+    filterElements.forEach(element => {
+        element.addEventListener('change', function() {
+            if (hasAnyFilters()) {
+                performSearch();
+            }
+        });
+    });
+});
+
+function performSearch() {
+    const formData = new FormData(document.getElementById('searchForm'));
+    const searchParams = new URLSearchParams();
+    
+    // Build search parameters
+    for (let [key, value] of formData.entries()) {
+        if (value && value.trim()) {
+            searchParams.append(key, value.trim());
+        }
+    }
+    
+    if (!hasAnyFilters()) {
+        document.getElementById('searchResults').style.display = 'none';
+        return;
+    }
+    
+    showLoadingState();
+    
+    // Simulate API call (replace with actual API endpoint)
+    setTimeout(() => {
+        displaySearchResults(generateMockResults());
+    }, 1000);
+}
+
+function hasAnyFilters() {
+    const formData = new FormData(document.getElementById('searchForm'));
+    for (let [key, value] of formData.entries()) {
+        if (value && value.trim()) {
+            return true;
+        }
+    }
+    return false;
+}
+
+function showLoadingState() {
+    const resultsContainer = document.getElementById('resultsContainer');
+    document.getElementById('searchResults').style.display = 'block';
+    
+    resultsContainer.innerHTML = `
+        <div class="loading-spinner">
+            <i class="fas fa-spinner"></i>
+            Searching logs...
+        </div>
+    `;
+}
+
+function displaySearchResults(results) {
+    const resultsContainer = document.getElementById('resultsContainer');
+    
+    if (results.length === 0) {
+        resultsContainer.innerHTML = `
+            <div style="text-align: center; padding: 2rem; color: var(--gray-600);">
+                <i class="fas fa-search" style="font-size: 3rem; margin-bottom: 1rem; opacity: 0.3;"></i>
+                <h3>No results found</h3>
+                <p>Try adjusting your search filters or search terms.</p>
+            </div>
+        `;
+        return;
+    }
+    
+    if (currentViewMode === 'grid') {
+        displayGridView(results);
+    } else {
+        displayListView(results);
+    }
+}
+
+function displayGridView(results) {
+    const resultsContainer = document.getElementById('resultsContainer');
+    const gridHtml = results.map(log => `
+        <div class="result-card">
+            <div class="result-card-header">
+                <div class="result-card-title">Log Report #${log.Cr_ID.slice(0,8)}</div>
+                <div class="result-card-status">
+                    <span class="status-badge status-${log.SolutionPossible ? 'success' : 'danger'}">
+                        ${log.SolutionPossible ? '✅' : '❌'}
+                    </span>
+                </div>
+            </div>
+            <div class="result-card-meta">
+                <div><strong>Team:</strong> ${log.TeamName}</div>
+                <div><strong>Module:</strong> ${log.Module}</div>
+                <div><strong>Owner:</strong> ${log.Owner}</div>
+                <div><strong>Created:</strong> ${log.CreatedAt}</div>
+            </div>
+            <div class="result-card-actions">
+                <a href="/report/${log.Cr_ID}" class="btn btn-primary btn-sm">View Report</a>
+                <button class="btn btn-outline btn-sm" onclick="shareLog('${log.Cr_ID}')">Share</button>
+            </div>
+        </div>
+    `).join('');
+    
+    resultsContainer.innerHTML = `<div class="results-grid">${gridHtml}</div>`;
+}
+
+function displayListView(results) {
+    const resultsContainer = document.getElementById('resultsContainer');
+    const listHtml = `
+        <div class="table-container">
+            <table class="table results-table">
+                <thead>
+                    <tr>
+                        <th>Team</th>
+                        <th>Module</th>
+                        <th>Owner</th>
+                        <th>Status</th>
+                        <th>Created</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    ${results.map(log => `
+                        <tr>
+                            <td>${log.TeamName}</td>
+                            <td>${log.Module}</td>
+                            <td>${log.Owner}</td>
+                            <td>
+                                <span class="status-badge status-${log.SolutionPossible ? 'success' : 'danger'}">
+                                    ${log.SolutionPossible ? '✅ Solution Available' : '❌ No Solution'}
+                                </span>
+                            </td>
+                            <td>${log.CreatedAt}</td>
+                            <td>
+                                <a href="/report/${log.Cr_ID}" class="btn btn-primary btn-sm">View Report</a>
+                            </td>
+                        </tr>
+                    `).join('')}
+                </tbody>
+            </table>
+        </div>
+    `;
+    
+    resultsContainer.innerHTML = listHtml;
+}
+
+function setViewMode(mode) {
+    currentViewMode = mode;
+    
+    // Update button states
+    document.getElementById('gridViewBtn').classList.toggle('active', mode === 'grid');
+    document.getElementById('listViewBtn').classList.toggle('active', mode === 'list');
+    
+    // Re-render results if they exist
+    const resultsContainer = document.getElementById('resultsContainer');
+    if (resultsContainer.innerHTML && !resultsContainer.innerHTML.includes('loading-spinner')) {
+        // Trigger re-render with current results
+        performSearch();
+    }
+}
+
+function setDateRange(range) {
+    const dateFrom = document.getElementById('date_from');
+    const dateTo = document.getElementById('date_to');
+    const today = new Date();
+    
+    dateTo.value = today.toISOString().split('T')[0];
+    
+    let fromDate = new Date();
+    
+    switch(range) {
+        case 'today':
+            fromDate = today;
+            break;
+        case 'week':
+            fromDate.setDate(today.getDate() - 7);
+            break;
+        case 'month':
+            fromDate.setDate(today.getDate() - 30);
+            break;
+    }
+    
+    dateFrom.value = fromDate.toISOString().split('T')[0];
+    
+    if (hasAnyFilters()) {
+        performSearch();
+    }
+}
+
+function clearFilters() {
+    document.getElementById('searchForm').reset();
+    document.getElementById('searchResults').style.display = 'none';
+    
+    // Update URL
+    window.history.pushState({}, '', window.location.pathname);
+}
+
+function generateMockResults() {
+    // Mock data for demonstration
+    return [
+        {
+            Cr_ID: 'mock-001',
+            TeamName: 'Frontend',
+            Module: 'Authentication',
+            Owner: 'john.doe@company.com',
+            SolutionPossible: true,
+            CreatedAt: '2025-09-08'
+        },
+        {
+            Cr_ID: 'mock-002',
+            TeamName: 'Backend',
+            Module: 'Payment',
+            Owner: 'jane.smith@company.com',
+            SolutionPossible: false,
+            CreatedAt: '2025-09-07'
+        },
+        {
+            Cr_ID: 'mock-003',
+            TeamName: 'DevOps',
+            Module: 'Database',
+            Owner: 'mike.wilson@company.com',
+            SolutionPossible: true,
+            CreatedAt: '2025-09-06'
+        }
+    ];
+}
+
+function shareLog(logId) {
+    const url = `${window.location.origin}/report/${logId}`;
+    
+    if (navigator.share) {
+        navigator.share({
+            title: 'BugSeek Error Report',
+            text: 'Check out this error report',
+            url: url
+        });
+    } else {
+        // Fallback to clipboard
+        navigator.clipboard.writeText(url).then(() => {
+            alert('Report link copied to clipboard!');
+        });
+    }
+}
+
+// Save search functionality
+document.getElementById('saveSearchBtn').addEventListener('click', function() {
+    const searchName = prompt('Enter a name for this search:');
+    if (searchName) {
+        // Save to localStorage (in a real app, this would be saved to the server)
+        const searches = JSON.parse(localStorage.getItem('savedSearches') || '[]');
+        const formData = new FormData(document.getElementById('searchForm'));
+        const searchData = {};
+        
+        for (let [key, value] of formData.entries()) {
+            if (value && value.trim()) {
+                searchData[key] = value.trim();
+            }
+        }
+        
+        searches.push({
+            id: Date.now().toString(),
+            name: searchName,
+            data: searchData,
+            created: new Date().toISOString()
+        });
+        
+        localStorage.setItem('savedSearches', JSON.stringify(searches));
+        alert('Search saved successfully!');
+    }
+});
+
+function loadSavedSearch(searchId) {
+    // Mock implementation - in real app, load from saved searches
+    const mockSearches = {
+        'frontend-recent': {
+            team: 'Frontend',
+            date_from: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0]
+        },
+        'db-critical': {
+            module: 'Database',
+            solution_status: 'false'
+        }
+    };
+    
+    const searchData = mockSearches[searchId];
+    if (searchData) {
+        // Clear current form
+        document.getElementById('searchForm').reset();
+        
+        // Load saved data
+        Object.entries(searchData).forEach(([key, value]) => {
+            const element = document.querySelector(`[name="${key}"]`);
+            if (element) {
+                element.value = value;
+            }
+        });
+        
+        performSearch();
+    }
+}
+</script>
+
+{% endblock %}

@@ -1,0 +1,2179 @@
+{% extends "base.html" %}
+
+{% block title %}Documentation - BugSeek{% endblock %}
+
+{% block content %}
+<div class="docs-container">
+    <!-- Documentation Header -->
+    <div class="docs-header">
+        <div class="docs-hero">
+            <h1 class="docs-title">
+                <i class="fas fa-book"></i>
+                BugSeek Documentation
+            </h1>
+            <p class="docs-subtitle">
+                Complete guide to using BugSeek's error log management system with AI-powered insights
+            </p>
+            <div class="docs-version">
+                <span class="version-badge">v1.0.0</span>
+                <span class="api-status">
+                    <i class="fas fa-circle" id="apiStatus"></i>
+                    API Status: <span id="apiStatusText">Checking...</span>
+                </span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Documentation Navigation -->
+    <div class="docs-nav">
+        <div class="nav-container">
+            <button class="nav-toggle mobile-only" onclick="toggleDocsNav()">
+                <i class="fas fa-bars"></i>
+                <span>Navigate Docs</span>
+            </button>
+            <nav class="docs-nav-menu" id="docsNavMenu">
+                <a href="#getting-started" class="nav-link active" data-section="getting-started">
+                    <i class="fas fa-play"></i> Getting Started
+                </a>
+                <a href="#user-guide" class="nav-link" data-section="user-guide">
+                    <i class="fas fa-user"></i> User Guide
+                </a>
+                <a href="#api-reference" class="nav-link" data-section="api-reference">
+                    <i class="fas fa-code"></i> API Reference
+                </a>
+                <a href="#examples" class="nav-link" data-section="examples">
+                    <i class="fas fa-lightbulb"></i> Examples
+                </a>
+                <a href="#integration" class="nav-link" data-section="integration">
+                    <i class="fas fa-plug"></i> Integration
+                </a>
+                <a href="#troubleshooting" class="nav-link" data-section="troubleshooting">
+                    <i class="fas fa-wrench"></i> Troubleshooting
+                </a>
+            </nav>
+        </div>
+    </div>
+
+    <!-- Documentation Content -->
+    <div class="docs-content">
+        <!-- Getting Started Section -->
+        <section id="getting-started" class="docs-section active">
+            <div class="section-header">
+                <h2>Getting Started</h2>
+                <p>Learn how to set up and start using BugSeek for error log management</p>
+            </div>
+
+            <div class="content-grid">
+                <div class="card info-card">
+                    <div class="card-header">
+                        <h3><i class="fas fa-rocket"></i> Quick Start</h3>
+                    </div>
+                    <div class="card-content">
+                        <ol class="setup-steps">
+                            <li>
+                                <strong>Access BugSeek:</strong>
+                                <p>Navigate to the BugSeek web interface at <code>http://localhost:8080</code></p>
+                            </li>
+                            <li>
+                                <strong>Upload Your First Log:</strong>
+                                <p>Go to the <a href="/upload">Upload</a> page and drag & drop your error log files</p>
+                            </li>
+                            <li>
+                                <strong>Fill in Details:</strong>
+                                <p>Provide team name, module, owner information, and description</p>
+                            </li>
+                            <li>
+                                <strong>View Results:</strong>
+                                <p>Check the <a href="/logs">Logs</a> page to see your uploaded error logs</p>
+                            </li>
+                            <li>
+                                <strong>Get AI Insights:</strong>
+                                <p>Click "View Report" to see AI-generated analysis and solutions</p>
+                            </li>
+                        </ol>
+                    </div>
+                </div>
+
+                <div class="card feature-card">
+                    <div class="card-header">
+                        <h3><i class="fas fa-star"></i> Key Features</h3>
+                    </div>
+                    <div class="card-content">
+                        <div class="features-list">
+                            <div class="feature-item">
+                                <i class="fas fa-upload"></i>
+                                <div>
+                                    <strong>Easy Upload</strong>
+                                    <p>Drag & drop or click to upload error log files</p>
+                                </div>
+                            </div>
+                            <div class="feature-item">
+                                <i class="fas fa-robot"></i>
+                                <div>
+                                    <strong>AI Analysis</strong>
+                                    <p>Automatic error analysis and solution suggestions</p>
+                                </div>
+                            </div>
+                            <div class="feature-item">
+                                <i class="fas fa-search"></i>
+                                <div>
+                                    <strong>Advanced Search</strong>
+                                    <p>Filter and search logs by team, module, date, and more</p>
+                                </div>
+                            </div>
+                            <div class="feature-item">
+                                <i class="fas fa-chart-bar"></i>
+                                <div>
+                                    <strong>Analytics</strong>
+                                    <p>Visual insights into error trends and team performance</p>
+                                </div>
+                            </div>
+                            <div class="feature-item">
+                                <i class="fas fa-mobile-alt"></i>
+                                <div>
+                                    <strong>Mobile Ready</strong>
+                                    <p>Fully responsive design for mobile and tablet use</p>
+                                </div>
+                            </div>
+                            <div class="feature-item">
+                                <i class="fas fa-api"></i>
+                                <div>
+                                    <strong>REST API</strong>
+                                    <p>Complete API for integration with your tools</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card requirements-card">
+                <div class="card-header">
+                    <h3><i class="fas fa-list-check"></i> System Requirements</h3>
+                </div>
+                <div class="card-content">
+                    <div class="requirements-grid">
+                        <div class="req-section">
+                            <h4>Supported File Types</h4>
+                            <ul>
+                                <li><code>.log</code> - Standard log files</li>
+                                <li><code>.txt</code> - Plain text files</li>
+                                <li><code>.json</code> - JSON formatted logs</li>
+                                <li><code>.xml</code> - XML structured logs</li>
+                            </ul>
+                        </div>
+                        <div class="req-section">
+                            <h4>File Size Limits</h4>
+                            <ul>
+                                <li>Maximum file size: <strong>50 MB</strong></li>
+                                <li>Multiple files: <strong>Supported</strong></li>
+                                <li>Batch upload: <strong>Available</strong></li>
+                            </ul>
+                        </div>
+                        <div class="req-section">
+                            <h4>Browser Compatibility</h4>
+                            <ul>
+                                <li>Chrome 80+</li>
+                                <li>Firefox 75+</li>
+                                <li>Safari 13+</li>
+                                <li>Edge 80+</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- User Guide Section -->
+        <section id="user-guide" class="docs-section">
+            <div class="section-header">
+                <h2>User Guide</h2>
+                <p>Detailed guide to using all BugSeek features effectively</p>
+            </div>
+
+            <div class="guide-content">
+                <div class="card guide-card">
+                    <div class="card-header">
+                        <h3><i class="fas fa-cloud-upload-alt"></i> Uploading Error Logs</h3>
+                    </div>
+                    <div class="card-content">
+                        <h4>Step-by-step Upload Process</h4>
+                        <div class="steps-container">
+                            <div class="step-item">
+                                <div class="step-number">1</div>
+                                <div class="step-content">
+                                    <h5>Navigate to Upload Page</h5>
+                                    <p>Click on "Upload" in the main navigation or visit <code>/upload</code></p>
+                                </div>
+                            </div>
+                            <div class="step-item">
+                                <div class="step-number">2</div>
+                                <div class="step-content">
+                                    <h5>Select Files</h5>
+                                    <p>Drag and drop files onto the upload zone or click to browse and select files</p>
+                                </div>
+                            </div>
+                            <div class="step-item">
+                                <div class="step-number">3</div>
+                                <div class="step-content">
+                                    <h5>Fill Metadata</h5>
+                                    <p>Complete the required fields:</p>
+                                    <ul>
+                                        <li><strong>Team Name:</strong> The team responsible for the error</li>
+                                        <li><strong>Module:</strong> The system module where the error occurred</li>
+                                        <li><strong>Owner:</strong> Email of the person responsible for fixing</li>
+                                        <li><strong>Description:</strong> Brief description of the issue</li>
+                                    </ul>
+                                </div>
+                            </div>
+                            <div class="step-item">
+                                <div class="step-number">4</div>
+                                <div class="step-content">
+                                    <h5>Submit and Process</h5>
+                                    <p>Click "Upload Files" to submit. BugSeek will process the logs and generate AI insights</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="card guide-card">
+                    <div class="card-header">
+                        <h3><i class="fas fa-search-plus"></i> Advanced Search & Filtering</h3>
+                    </div>
+                    <div class="card-content">
+                        <h4>Search Capabilities</h4>
+                        <div class="search-features">
+                            <div class="search-feature">
+                                <h5><i class="fas fa-keyboard"></i> Text Search</h5>
+                                <p>Search across log content, file names, and metadata using keywords</p>
+                                <div class="code-example">
+                                    <code>timeout error database connection</code>
+                                </div>
+                            </div>
+                            <div class="search-feature">
+                                <h5><i class="fas fa-filter"></i> Filters Available</h5>
+                                <ul>
+                                    <li><strong>Team:</strong> Filter by development team</li>
+                                    <li><strong>Module:</strong> Filter by system module</li>
+                                    <li><strong>Owner:</strong> Filter by owner email</li>
+                                    <li><strong>Date Range:</strong> Filter by upload date</li>
+                                    <li><strong>Solution Status:</strong> Show only logs with/without solutions</li>
+                                    <li><strong>File Size:</strong> Filter by log file size</li>
+                                </ul>
+                            </div>
+                            <div class="search-feature">
+                                <h5><i class="fas fa-bookmark"></i> Saved Searches</h5>
+                                <p>Save frequently used search combinations for quick access</p>
+                                <ul>
+                                    <li>Create custom saved searches</li>
+                                    <li>Quick access to common filters</li>
+                                    <li>Share search configurations</li>
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="card guide-card">
+                    <div class="card-header">
+                        <h3><i class="fas fa-chart-line"></i> Analytics Dashboard</h3>
+                    </div>
+                    <div class="card-content">
+                        <h4>Understanding Your Error Metrics</h4>
+                        <div class="analytics-guide">
+                            <div class="metric-explanation">
+                                <h5>Key Metrics</h5>
+                                <ul>
+                                    <li><strong>Total Logs:</strong> Number of error logs uploaded</li>
+                                    <li><strong>Resolved Issues:</strong> Logs with available solutions</li>
+                                    <li><strong>Active Teams:</strong> Teams currently reporting errors</li>
+                                    <li><strong>Average File Size:</strong> Typical size of uploaded logs</li>
+                                </ul>
+                            </div>
+                            <div class="chart-explanation">
+                                <h5>Chart Types</h5>
+                                <ul>
+                                    <li><strong>Error Trends:</strong> Timeline of error occurrences</li>
+                                    <li><strong>Team Performance:</strong> Errors by team and resolution rates</li>
+                                    <li><strong>Module Distribution:</strong> Most problematic system modules</li>
+                                    <li><strong>Resolution Timeline:</strong> Time to resolve issues</li>
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- API Reference Section -->
+        <section id="api-reference" class="docs-section">
+            <div class="section-header">
+                <h2>API Reference</h2>
+                <p>Complete REST API documentation for BugSeek integration</p>
+            </div>
+
+            <div class="api-content">
+                <div class="api-overview">
+                    <div class="card">
+                        <div class="card-header">
+                            <h3><i class="fas fa-info-circle"></i> API Overview</h3>
+                        </div>
+                        <div class="card-content">
+                            <div class="api-info">
+                                <div class="api-detail">
+                                    <strong>Base URL:</strong>
+                                    <code id="baseUrl">http://localhost:5000/api/v1</code>
+                                    <button class="btn btn-sm" onclick="copyToClipboard('#baseUrl')">
+                                        <i class="fas fa-copy"></i>
+                                    </button>
+                                </div>
+                                <div class="api-detail">
+                                    <strong>Format:</strong>
+                                    <code>JSON</code>
+                                </div>
+                                <div class="api-detail">
+                                    <strong>Authentication:</strong>
+                                    <span class="badge badge-info">None Required</span>
+                                </div>
+                                <div class="api-detail">
+                                    <strong>CORS:</strong>
+                                    <span class="badge badge-success">Enabled</span>
+                                </div>
+                            </div>
+                            
+                            <div class="api-links">
+                                <a href="/api/docs/" target="_blank" class="btn btn-primary">
+                                    <i class="fas fa-external-link-alt"></i>
+                                    Interactive API Docs (Swagger)
+                                </a>
+                                <button class="btn btn-outline" onclick="testApiConnection()">
+                                    <i class="fas fa-flask"></i>
+                                    Test API Connection
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="endpoints-list">
+                    <div class="card endpoint-card">
+                        <div class="card-header">
+                            <h3><i class="fas fa-list"></i> Error Logs Endpoints</h3>
+                        </div>
+                        <div class="card-content">
+                            <div class="endpoint">
+                                <div class="endpoint-header">
+                                    <span class="method method-post">POST</span>
+                                    <code>/api/v1/logs/upload</code>
+                                    <span class="endpoint-title">Upload Error Log</span>
+                                </div>
+                                <div class="endpoint-description">
+                                    <p>Upload a new error log file with metadata</p>
+                                </div>
+                                <div class="endpoint-details">
+                                    <h5>Request Body (multipart/form-data):</h5>
+                                    <div class="code-block">
+                                        <pre><code>{
+  "file": "log_file.log",           // Required: Log file
+  "TeamName": "Frontend",           // Required: Team name
+  "Module": "Authentication",       // Required: Module name
+  "Description": "Login timeout",   // Required: Error description
+  "Owner": "john@company.com",      // Required: Owner email
+  "SolutionPossible": false         // Optional: Solution available
+}</code></pre>
+                                    </div>
+                                    <h5>Response (201 Created):</h5>
+                                    <div class="code-block">
+                                        <pre><code>{
+  "success": true,
+  "message": "Log uploaded successfully",
+  "report_url": "/api/v1/reports/cr_123456",
+  "Cr_ID": "cr_123456"
+}</code></pre>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="endpoint">
+                                <div class="endpoint-header">
+                                    <span class="method method-get">GET</span>
+                                    <code>/api/v1/logs/</code>
+                                    <span class="endpoint-title">List Error Logs</span>
+                                </div>
+                                <div class="endpoint-description">
+                                    <p>Get a paginated list of error logs with filtering options</p>
+                                </div>
+                                <div class="endpoint-details">
+                                    <h5>Query Parameters:</h5>
+                                    <div class="params-table">
+                                        <table>
+                                            <thead>
+                                                <tr>
+                                                    <th>Parameter</th>
+                                                    <th>Type</th>
+                                                    <th>Description</th>
+                                                    <th>Default</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                                <tr>
+                                                    <td><code>page</code></td>
+                                                    <td>integer</td>
+                                                    <td>Page number</td>
+                                                    <td>1</td>
+                                                </tr>
+                                                <tr>
+                                                    <td><code>per_page</code></td>
+                                                    <td>integer</td>
+                                                    <td>Items per page</td>
+                                                    <td>20</td>
+                                                </tr>
+                                                <tr>
+                                                    <td><code>TeamName</code></td>
+                                                    <td>string</td>
+                                                    <td>Filter by team</td>
+                                                    <td>-</td>
+                                                </tr>
+                                                <tr>
+                                                    <td><code>Module</code></td>
+                                                    <td>string</td>
+                                                    <td>Filter by module</td>
+                                                    <td>-</td>
+                                                </tr>
+                                                <tr>
+                                                    <td><code>Owner</code></td>
+                                                    <td>string</td>
+                                                    <td>Filter by owner</td>
+                                                    <td>-</td>
+                                                </tr>
+                                                <tr>
+                                                    <td><code>search</code></td>
+                                                    <td>string</td>
+                                                    <td>General search term</td>
+                                                    <td>-</td>
+                                                </tr>
+                                                <tr>
+                                                    <td><code>SolutionPossible</code></td>
+                                                    <td>boolean</td>
+                                                    <td>Filter by solution status</td>
+                                                    <td>-</td>
+                                                </tr>
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="card endpoint-card">
+                        <div class="card-header">
+                            <h3><i class="fas fa-file-alt"></i> Reports Endpoints</h3>
+                        </div>
+                        <div class="card-content">
+                            <div class="endpoint">
+                                <div class="endpoint-header">
+                                    <span class="method method-get">GET</span>
+                                    <code>/api/v1/reports/{cr_id}</code>
+                                    <span class="endpoint-title">Get Error Report</span>
+                                </div>
+                                <div class="endpoint-description">
+                                    <p>Get detailed report with AI analysis for a specific error log</p>
+                                </div>
+                                <div class="endpoint-details">
+                                    <h5>Response (200 OK):</h5>
+                                    <div class="code-block">
+                                        <pre><code>{
+  "success": true,
+  "data": {
+    "log_details": {
+      "Cr_ID": "cr_123456",
+      "TeamName": "Frontend",
+      "Module": "Authentication",
+      "Description": "Login timeout error",
+      "Owner": "john@company.com",
+      "LogFileName": "error.log",
+      "SolutionPossible": true,
+      "CreatedAt": "2025-09-08T19:30:00Z"
+    },
+    "ai_summary": {
+      "summary": "Authentication timeout detected...",
+      "confidence": 85
+    },
+    "suggested_solutions": {
+      "solutions": [
+        {
+          "description": "Increase timeout configuration",
+          "confidence": 90
+        }
+      ]
+    },
+    "similar_logs": {
+      "logs": [...] 
+    }
+  }
+}</code></pre>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="card endpoint-card">
+                        <div class="card-header">
+                            <h3><i class="fas fa-heartbeat"></i> System Endpoints</h3>
+                        </div>
+                        <div class="card-content">
+                            <div class="endpoint">
+                                <div class="endpoint-header">
+                                    <span class="method method-get">GET</span>
+                                    <code>/api/v1/health/</code>
+                                    <span class="endpoint-title">Health Check</span>
+                                </div>
+                                <div class="endpoint-description">
+                                    <p>Check system health and get basic statistics</p>
+                                </div>
+                            </div>
+
+                            <div class="endpoint">
+                                <div class="endpoint-header">
+                                    <span class="method method-get">GET</span>
+                                    <code>/api/v1/statistics</code>
+                                    <span class="endpoint-title">System Statistics</span>
+                                </div>
+                                <div class="endpoint-description">
+                                    <p>Get detailed system statistics and metrics</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="card">
+                    <div class="card-header">
+                        <h3><i class="fas fa-exclamation-triangle"></i> Error Handling</h3>
+                    </div>
+                    <div class="card-content">
+                        <div class="error-codes">
+                            <h4>Standard HTTP Status Codes</h4>
+                            <div class="status-codes">
+                                <div class="status-code">
+                                    <span class="code code-success">200</span>
+                                    <span>OK - Request successful</span>
+                                </div>
+                                <div class="status-code">
+                                    <span class="code code-success">201</span>
+                                    <span>Created - Resource created successfully</span>
+                                </div>
+                                <div class="status-code">
+                                    <span class="code code-error">400</span>
+                                    <span>Bad Request - Invalid parameters or data</span>
+                                </div>
+                                <div class="status-code">
+                                    <span class="code code-error">404</span>
+                                    <span>Not Found - Resource does not exist</span>
+                                </div>
+                                <div class="status-code">
+                                    <span class="code code-error">500</span>
+                                    <span>Internal Server Error - Server-side error</span>
+                                </div>
+                            </div>
+                            
+                            <h5>Error Response Format:</h5>
+                            <div class="code-block">
+                                <pre><code>{
+  "success": false,
+  "message": "Detailed error description",
+  "error_code": "VALIDATION_ERROR",
+  "details": {
+    "field": "TeamName",
+    "issue": "Required field missing"
+  }
+}</code></pre>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Examples Section -->
+        <section id="examples" class="docs-section">
+            <div class="section-header">
+                <h2>Code Examples</h2>
+                <p>Practical examples for integrating with BugSeek API</p>
+            </div>
+
+            <div class="examples-content">
+                <div class="card example-card">
+                    <div class="card-header">
+                        <h3><i class="fab fa-js-square"></i> JavaScript/Node.js Examples</h3>
+                    </div>
+                    <div class="card-content">
+                        <div class="example-item">
+                            <h4>Upload Error Log</h4>
+                            <div class="code-block">
+                                <pre><code>const fs = require('fs');
+const FormData = require('form-data');
+const axios = require('axios');
+
+async function uploadErrorLog(filePath, metadata) {
+    const form = new FormData();
+    form.append('file', fs.createReadStream(filePath));
+    form.append('TeamName', metadata.teamName);
+    form.append('Module', metadata.module);
+    form.append('Description', metadata.description);
+    form.append('Owner', metadata.owner);
+    
+    try {
+        const response = await axios.post(
+            'http://localhost:5000/api/v1/logs/upload',
+            form,
+            {
+                headers: form.getHeaders()
+            }
+        );
+        
+        console.log('Upload successful:', response.data);
+        return response.data;
+    } catch (error) {
+        console.error('Upload failed:', error.response?.data || error.message);
+        throw error;
+    }
+}
+
+// Usage
+uploadErrorLog('./error.log', {
+    teamName: 'Frontend',
+    module: 'Authentication',
+    description: 'Login timeout error',
+    owner: 'john@company.com'
+});</code></pre>
+                            </div>
+                        </div>
+
+                        <div class="example-item">
+                            <h4>Fetch Error Logs</h4>
+                            <div class="code-block">
+                                <pre><code>async function getErrorLogs(filters = {}) {
+    const params = new URLSearchParams(filters);
+    
+    try {
+        const response = await axios.get(
+            `http://localhost:5000/api/v1/logs/?${params}`
+        );
+        
+        console.log('Logs retrieved:', response.data);
+        return response.data.data;
+    } catch (error) {
+        console.error('Failed to fetch logs:', error.message);
+        throw error;
+    }
+}
+
+// Usage
+getErrorLogs({
+    TeamName: 'Frontend',
+    page: 1,
+    per_page: 10
+});</code></pre>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="card example-card">
+                    <div class="card-header">
+                        <h3><i class="fab fa-python"></i> Python Examples</h3>
+                    </div>
+                    <div class="card-content">
+                        <div class="example-item">
+                            <h4>Upload Error Log</h4>
+                            <div class="code-block">
+                                <pre><code>import requests
+import json
+
+def upload_error_log(file_path, metadata):
+    url = "http://localhost:5000/api/v1/logs/upload"
+    
+    with open(file_path, 'rb') as file:
+        files = {'file': file}
+        data = {
+            'TeamName': metadata['team_name'],
+            'Module': metadata['module'],
+            'Description': metadata['description'],
+            'Owner': metadata['owner'],
+            'SolutionPossible': metadata.get('solution_possible', False)
+        }
+        
+        try:
+            response = requests.post(url, files=files, data=data)
+            response.raise_for_status()
+            
+            result = response.json()
+            print(f"Upload successful: {result}")
+            return result
+            
+        except requests.exceptions.RequestException as e:
+            print(f"Upload failed: {e}")
+            if hasattr(e.response, 'text'):
+                print(f"Error details: {e.response.text}")
+            raise
+
+# Usage
+metadata = {
+    'team_name': 'Backend',
+    'module': 'Database',
+    'description': 'Connection timeout',
+    'owner': 'jane@company.com',
+    'solution_possible': False
+}
+
+upload_error_log('./database_error.log', metadata)</code></pre>
+                            </div>
+                        </div>
+
+                        <div class="example-item">
+                            <h4>Get Detailed Report</h4>
+                            <div class="code-block">
+                                <pre><code>def get_error_report(cr_id):
+    url = f"http://localhost:5000/api/v1/reports/{cr_id}"
+    
+    try:
+        response = requests.get(url)
+        response.raise_for_status()
+        
+        report = response.json()
+        if report['success']:
+            print(f"Report retrieved for {cr_id}")
+            return report['data']
+        else:
+            print(f"Failed to get report: {report['message']}")
+            return None
+            
+    except requests.exceptions.RequestException as e:
+        print(f"Request failed: {e}")
+        raise
+
+# Usage
+report = get_error_report('cr_123456')
+if report:
+    print(f"Team: {report['log_details']['TeamName']}")
+    print(f"Module: {report['log_details']['Module']}")
+    if report['ai_summary']:
+        print(f"AI Summary: {report['ai_summary']['summary']}")
+</code></pre>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="card example-card">
+                    <div class="card-header">
+                        <h3><i class="fas fa-terminal"></i> cURL Examples</h3>
+                    </div>
+                    <div class="card-content">
+                        <div class="example-item">
+                            <h4>Upload Error Log</h4>
+                            <div class="code-block">
+                                <pre><code>curl -X POST "http://localhost:5000/api/v1/logs/upload" \
+  -H "Content-Type: multipart/form-data" \
+  -F "file=@./error.log" \
+  -F "TeamName=DevOps" \
+  -F "Module=CI/CD" \
+  -F "Description=Build pipeline failure" \
+  -F "Owner=devops@company.com" \
+  -F "SolutionPossible=true"</code></pre>
+                            </div>
+                        </div>
+
+                        <div class="example-item">
+                            <h4>Get Error Logs with Filters</h4>
+                            <div class="code-block">
+                                <pre><code>curl -X GET "http://localhost:5000/api/v1/logs/?TeamName=Frontend&page=1&per_page=5" \
+  -H "Accept: application/json"</code></pre>
+                            </div>
+                        </div>
+
+                        <div class="example-item">
+                            <h4>Health Check</h4>
+                            <div class="code-block">
+                                <pre><code>curl -X GET "http://localhost:5000/api/v1/health/" \
+  -H "Accept: application/json"</code></pre>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Integration Section -->
+        <section id="integration" class="docs-section">
+            <div class="section-header">
+                <h2>Integration Guide</h2>
+                <p>Integrate BugSeek with your existing development workflow</p>
+            </div>
+
+            <div class="integration-content">
+                <div class="card integration-card">
+                    <div class="card-header">
+                        <h3><i class="fab fa-github"></i> CI/CD Integration</h3>
+                    </div>
+                    <div class="card-content">
+                        <h4>GitHub Actions Example</h4>
+                        <div class="code-block">
+                            <pre><code>{% raw %}name: Upload Error Logs to BugSeek
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  upload-logs:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v2
+    
+    - name: Upload Test Logs
+      if: failure()
+      run: |
+        curl -X POST "https://your-bugseek-instance.com/api/v1/logs/upload" \
+          -H "Content-Type: multipart/form-data" \
+          -F "file=@./test-logs/error.log" \
+          -F "TeamName=${{ github.event.repository.name }}" \
+          -F "Module=CI/CD" \
+          -F "Description=Test failure in ${{ github.sha }}" \
+          -F "Owner=${{ github.actor }}@company.com"{% endraw %}
+</code></pre>
+                        </div>
+
+                        <h4>Jenkins Pipeline Example</h4>
+                        <div class="code-block">
+                            <pre><code>{% raw %}pipeline {
+    agent any
+    
+    post {
+        failure {
+            script {
+                sh '''
+                    curl -X POST "http://bugseek.company.com/api/v1/logs/upload" \
+                      -F "file=@./logs/build.log" \
+                      -F "TeamName=${JOB_NAME}" \
+                      -F "Module=Build" \
+                      -F "Description=Build failed for ${BUILD_NUMBER}" \
+                      -F "Owner=${BUILD_USER_EMAIL}"
+                '''
+            }
+        }
+    }
+}{% endraw %}
+</code></pre>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="card integration-card">
+                    <div class="card-header">
+                        <h3><i class="fas fa-bell"></i> Monitoring Integration</h3>
+                    </div>
+                    <div class="card-content">
+                        <h4>Webhook Integration</h4>
+                        <p>Set up webhooks to automatically receive error notifications:</p>
+                        
+                        <div class="webhook-setup">
+                            <h5>Slack Integration</h5>
+                            <div class="code-block">
+                                <pre><code>import requests
+import json
+
+def send_to_slack(error_log_data):
+    slack_webhook = "YOUR_SLACK_WEBHOOK_URL"
+    
+    message = {
+        "text": f"New Error Log Uploaded",
+        "attachments": [
+            {
+                "color": "danger",
+                "fields": [
+                    {"title": "Team", "value": error_log_data["TeamName"], "short": True},
+                    {"title": "Module", "value": error_log_data["Module"], "short": True},
+                    {"title": "Owner", "value": error_log_data["Owner"], "short": True},
+                    {"title": "Description", "value": error_log_data["Description"]},
+                ]
+            }
+        ]
+    }
+    
+    requests.post(slack_webhook, json=message)</code></pre>
+                            </div>
+
+                            <h5>Email Notifications</h5>
+                            <div class="code-block">
+                                <pre><code>import smtplib
+from email.mime.text import MIMEText
+from email.mime.multipart import MIMEMultipart
+
+def send_error_notification(error_data):
+    sender_email = "bugseek@company.com"
+    receiver_email = error_data["Owner"]
+    
+    message = MIMEMultipart("alternative")
+    message["Subject"] = f"New Error: {error_data['Module']}"
+    message["From"] = sender_email
+    message["To"] = receiver_email
+    
+    html = f"""
+    <html>
+      <body>
+        <h2>New Error Log Uploaded</h2>
+        <p><strong>Team:</strong> {error_data['TeamName']}</p>
+        <p><strong>Module:</strong> {error_data['Module']}</p>
+        <p><strong>Description:</strong> {error_data['Description']}</p>
+        <p><a href="http://bugseek.company.com/report/{error_data['Cr_ID']}">View Report</a></p>
+      </body>
+    </html>
+    """
+    
+    part = MIMEText(html, "html")
+    message.attach(part)
+    
+    with smtplib.SMTP("smtp.company.com", 587) as server:
+        server.starttls()
+        server.login(sender_email, "password")
+        server.sendmail(sender_email, receiver_email, message.as_string())
+</code></pre>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="card integration-card">
+                    <div class="card-header">
+                        <h3><i class="fas fa-cogs"></i> Custom Applications</h3>
+                    </div>
+                    <div class="card-content">
+                        <h4>SDK-Style Wrapper Example</h4>
+                        <div class="code-block">
+                            <pre><code>class BugSeekClient:
+    def __init__(self, base_url="http://localhost:5000", api_version="v1"):
+        self.base_url = f"{base_url}/api/{api_version}"
+        self.session = requests.Session()
+    
+    def upload_log(self, file_path, team_name, module, description, owner, solution_possible=False):
+        """Upload an error log file with metadata"""
+        url = f"{self.base_url}/logs/upload"
+        
+        with open(file_path, 'rb') as file:
+            files = {'file': file}
+            data = {
+                'TeamName': team_name,
+                'Module': module,
+                'Description': description,
+                'Owner': owner,
+                'SolutionPossible': solution_possible
+            }
+            
+            response = self.session.post(url, files=files, data=data)
+            response.raise_for_status()
+            return response.json()
+    
+    def get_logs(self, **filters):
+        """Get filtered list of error logs"""
+        url = f"{self.base_url}/logs/"
+        response = self.session.get(url, params=filters)
+        response.raise_for_status()
+        return response.json()
+    
+    def get_report(self, cr_id):
+        """Get detailed report for specific error log"""
+        url = f"{self.base_url}/reports/{cr_id}"
+        response = self.session.get(url)
+        response.raise_for_status()
+        return response.json()
+
+# Usage
+client = BugSeekClient()
+result = client.upload_log(
+    file_path="./error.log",
+    team_name="Backend",
+    module="Database",
+    description="Connection timeout",
+    owner="dev@company.com"
+)
+print(f"Uploaded with CR_ID: {result['Cr_ID']}")
+</code></pre>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Troubleshooting Section -->
+        <section id="troubleshooting" class="docs-section">
+            <div class="section-header">
+                <h2>Troubleshooting</h2>
+                <p>Common issues and solutions when using BugSeek</p>
+            </div>
+
+            <div class="troubleshooting-content">
+                <div class="card trouble-card">
+                    <div class="card-header">
+                        <h3><i class="fas fa-upload"></i> Upload Issues</h3>
+                    </div>
+                    <div class="card-content">
+                        <div class="issue-item">
+                            <h4>❌ File too large error</h4>
+                            <p><strong>Problem:</strong> Getting "File size exceeds limit" error</p>
+                            <p><strong>Solution:</strong></p>
+                            <ul>
+                                <li>Maximum file size is 50MB per file</li>
+                                <li>Compress large log files before uploading</li>
+                                <li>Split large logs into smaller chunks</li>
+                                <li>Consider log rotation to keep files manageable</li>
+                            </ul>
+                        </div>
+
+                        <div class="issue-item">
+                            <h4>❌ Unsupported file type</h4>
+                            <p><strong>Problem:</strong> File type not accepted</p>
+                            <p><strong>Solution:</strong></p>
+                            <ul>
+                                <li>Supported formats: .log, .txt, .json, .xml</li>
+                                <li>Rename your file with correct extension</li>
+                                <li>Ensure file content matches the extension</li>
+                            </ul>
+                        </div>
+
+                        <div class="issue-item">
+                            <h4>❌ Upload timeout</h4>
+                            <p><strong>Problem:</strong> Upload process times out</p>
+                            <p><strong>Solution:</strong></p>
+                            <ul>
+                                <li>Check internet connection stability</li>
+                                <li>Reduce file size if possible</li>
+                                <li>Try uploading during off-peak hours</li>
+                                <li>Use API with retry logic for automated uploads</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="card trouble-card">
+                    <div class="card-header">
+                        <h3><i class="fas fa-exclamation-triangle"></i> API Issues</h3>
+                    </div>
+                    <div class="card-content">
+                        <div class="issue-item">
+                            <h4>❌ 400 Bad Request</h4>
+                            <p><strong>Problem:</strong> API returns validation error</p>
+                            <p><strong>Solution:</strong></p>
+                            <ul>
+                                <li>Check all required fields are provided</li>
+                                <li>Verify field formats (email for Owner, etc.)</li>
+                                <li>Ensure file is attached for upload endpoints</li>
+                                <li>Check API documentation for parameter requirements</li>
+                            </ul>
+                        </div>
+
+                        <div class="issue-item">
+                            <h4>❌ 404 Not Found</h4>
+                            <p><strong>Problem:</strong> Endpoint or resource not found</p>
+                            <p><strong>Solution:</strong></p>
+                            <ul>
+                                <li>Verify the correct API endpoint URL</li>
+                                <li>Check if CR_ID exists when accessing reports</li>
+                                <li>Ensure API version is correct (/api/v1/)</li>
+                                <li>Confirm the server is running</li>
+                            </ul>
+                        </div>
+
+                        <div class="issue-item">
+                            <h4>❌ 500 Internal Server Error</h4>
+                            <p><strong>Problem:</strong> Server-side error occurred</p>
+                            <p><strong>Solution:</strong></p>
+                            <ul>
+                                <li>Check server logs for detailed error information</li>
+                                <li>Verify database connection is working</li>
+                                <li>Ensure all dependencies are installed</li>
+                                <li>Contact system administrator if persistent</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="card trouble-card">
+                    <div class="card-header">
+                        <h3><i class="fas fa-browser"></i> UI Issues</h3>
+                    </div>
+                    <div class="card-content">
+                        <div class="issue-item">
+                            <h4>❌ Mobile interface not responsive</h4>
+                            <p><strong>Problem:</strong> UI doesn't adapt to mobile screen</p>
+                            <p><strong>Solution:</strong></p>
+                            <ul>
+                                <li>Refresh the page to reload CSS</li>
+                                <li>Clear browser cache</li>
+                                <li>Ensure JavaScript is enabled</li>
+                                <li>Update to latest browser version</li>
+                            </ul>
+                        </div>
+
+                        <div class="issue-item">
+                            <h4>❌ Search results not loading</h4>
+                            <p><strong>Problem:</strong> Advanced search returns no results</p>
+                            <p><strong>Solution:</strong></p>
+                            <ul>
+                                <li>Check if filters are too restrictive</li>
+                                <li>Clear all filters and try again</li>
+                                <li>Verify API connectivity</li>
+                                <li>Check browser console for JavaScript errors</li>
+                            </ul>
+                        </div>
+
+                        <div class="issue-item">
+                            <h4>❌ Charts not displaying</h4>
+                            <p><strong>Problem:</strong> Analytics charts show as blank</p>
+                            <p><strong>Solution:</strong></p>
+                            <ul>
+                                <li>Ensure Chart.js library is loaded</li>
+                                <li>Check browser console for errors</li>
+                                <li>Verify there's data to display</li>
+                                <li>Disable ad-blockers that might block chart libraries</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="card contact-card">
+                    <div class="card-header">
+                        <h3><i class="fas fa-life-ring"></i> Still Need Help?</h3>
+                    </div>
+                    <div class="card-content">
+                        <div class="contact-options">
+                            <div class="contact-option">
+                                <i class="fas fa-external-link-alt"></i>
+                                <div>
+                                    <strong>Interactive API Documentation</strong>
+                                    <p>Try out API endpoints directly</p>
+                                    <a href="/api/docs/" target="_blank" class="btn btn-sm">Open Swagger Docs</a>
+                                </div>
+                            </div>
+                            <div class="contact-option">
+                                <i class="fas fa-code"></i>
+                                <div>
+                                    <strong>View Source Code</strong>
+                                    <p>Explore the implementation details</p>
+                                    <a href="#" class="btn btn-sm" onclick="alert('GitHub repository link would go here')">View on GitHub</a>
+                                </div>
+                            </div>
+                            <div class="contact-option">
+                                <i class="fas fa-bug"></i>
+                                <div>
+                                    <strong>Report Issues</strong>
+                                    <p>Found a bug? Let us know!</p>
+                                    <button class="btn btn-sm" onclick="reportIssue()">Report Bug</button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+    </div>
+</div>
+
+<style>
+/* Documentation Styles */
+.docs-container {
+    max-width: 100%;
+    margin: 0;
+    background: var(--light);
+}
+
+.docs-header {
+    background: var(--gradient-primary);
+    color: white;
+    padding: 3rem 0 2rem;
+    margin-bottom: 0;
+}
+
+.docs-hero {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 0 2rem;
+    text-align: center;
+}
+
+.docs-title {
+    font-size: 3rem;
+    font-weight: 800;
+    margin-bottom: 1rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 1rem;
+}
+
+.docs-subtitle {
+    font-size: 1.2rem;
+    margin-bottom: 2rem;
+    color: rgba(255, 255, 255, 0.9);
+    max-width: 600px;
+    margin-left: auto;
+    margin-right: auto;
+}
+
+.docs-version {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 2rem;
+    flex-wrap: wrap;
+}
+
+.version-badge {
+    background: rgba(255, 255, 255, 0.2);
+    padding: 0.5rem 1rem;
+    border-radius: var(--radius-full);
+    font-weight: 600;
+    font-size: 0.9rem;
+}
+
+.api-status {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-size: 0.9rem;
+}
+
+.api-status i {
+    color: #4ade80;
+    animation: pulse 2s infinite;
+}
+
+/* Documentation Navigation */
+.docs-nav {
+    background: white;
+    border-bottom: 1px solid var(--gray-200);
+    position: sticky;
+    top: 0;
+    z-index: 100;
+}
+
+.nav-container {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 0 2rem;
+}
+
+.nav-toggle {
+    display: none;
+    background: none;
+    border: none;
+    padding: 1rem 0;
+    cursor: pointer;
+    align-items: center;
+    gap: 0.5rem;
+    color: var(--gray-700);
+    font-weight: 500;
+}
+
+.docs-nav-menu {
+    display: flex;
+    gap: 0.5rem;
+    overflow-x: auto;
+    padding: 1rem 0;
+}
+
+.docs-nav-menu .nav-link {
+    color: var(--gray-600);
+    text-decoration: none;
+    padding: 0.75rem 1.5rem;
+    border-radius: var(--radius-full);
+    white-space: nowrap;
+    transition: all 0.3s ease;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-weight: 500;
+}
+
+.docs-nav-menu .nav-link:hover,
+.docs-nav-menu .nav-link.active {
+    color: var(--primary);
+    background: rgba(99, 102, 241, 0.1);
+}
+
+/* Documentation Content */
+.docs-content {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 2rem;
+}
+
+.docs-section {
+    display: none;
+    margin-bottom: 4rem;
+}
+
+.docs-section.active {
+    display: block;
+}
+
+.section-header {
+    text-align: center;
+    margin-bottom: 3rem;
+}
+
+.section-header h2 {
+    font-size: 2.5rem;
+    font-weight: 800;
+    color: var(--gray-800);
+    margin-bottom: 1rem;
+}
+
+.section-header p {
+    font-size: 1.1rem;
+    color: var(--gray-600);
+    max-width: 600px;
+    margin: 0 auto;
+}
+
+/* Content Grid */
+.content-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
+    gap: 2rem;
+    margin-bottom: 3rem;
+}
+
+/* Cards */
+.docs-section .card {
+    background: white;
+    border: 1px solid var(--gray-200);
+    border-radius: var(--radius-lg);
+    overflow: hidden;
+    transition: all 0.3s ease;
+    height: fit-content;
+}
+
+.docs-section .card:hover {
+    box-shadow: var(--shadow-lg);
+    transform: translateY(-4px);
+}
+
+.card-header {
+    background: var(--gray-50);
+    padding: 1.5rem;
+    border-bottom: 1px solid var(--gray-200);
+}
+
+.card-header h3 {
+    color: var(--gray-800);
+    font-weight: 700;
+    margin: 0;
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+}
+
+.card-content {
+    padding: 2rem;
+}
+
+/* Features */
+.features-list {
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+}
+
+.feature-item {
+    display: flex;
+    align-items: flex-start;
+    gap: 1rem;
+}
+
+.feature-item i {
+    color: var(--primary);
+    font-size: 1.5rem;
+    margin-top: 0.25rem;
+}
+
+.feature-item strong {
+    color: var(--gray-800);
+    display: block;
+    margin-bottom: 0.25rem;
+}
+
+.feature-item p {
+    color: var(--gray-600);
+    margin: 0;
+}
+
+/* Setup Steps */
+.setup-steps {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+}
+
+.setup-steps li {
+    margin-bottom: 1.5rem;
+    padding-left: 2rem;
+    position: relative;
+}
+
+.setup-steps li::before {
+    content: counter(step-counter);
+    counter-increment: step-counter;
+    position: absolute;
+    left: 0;
+    top: 0;
+    background: var(--primary);
+    color: white;
+    width: 1.5rem;
+    height: 1.5rem;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.8rem;
+    font-weight: 600;
+}
+
+.setup-steps {
+    counter-reset: step-counter;
+}
+
+/* Requirements Grid */
+.requirements-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 2rem;
+}
+
+.req-section h4 {
+    color: var(--gray-800);
+    margin-bottom: 1rem;
+    font-weight: 600;
+}
+
+.req-section ul {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+}
+
+.req-section li {
+    padding: 0.5rem 0;
+    border-bottom: 1px solid var(--gray-100);
+    color: var(--gray-600);
+}
+
+.req-section li:last-child {
+    border-bottom: none;
+}
+
+.req-section li code,
+.req-section li strong {
+    color: var(--gray-800);
+    font-weight: 600;
+}
+
+/* Steps Container */
+.steps-container {
+    display: flex;
+    flex-direction: column;
+    gap: 2rem;
+}
+
+.step-item {
+    display: flex;
+    align-items: flex-start;
+    gap: 1.5rem;
+}
+
+.step-number {
+    background: var(--primary);
+    color: white;
+    width: 2rem;
+    height: 2rem;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 700;
+    flex-shrink: 0;
+}
+
+.step-content h5 {
+    color: var(--gray-800);
+    margin-bottom: 0.5rem;
+    font-weight: 600;
+}
+
+.step-content p {
+    color: var(--gray-600);
+    margin-bottom: 0.5rem;
+}
+
+.step-content ul {
+    margin: 0;
+    padding-left: 1.5rem;
+}
+
+.step-content ul li {
+    color: var(--gray-600);
+    margin-bottom: 0.25rem;
+}
+
+/* API Content */
+.api-content {
+    display: flex;
+    flex-direction: column;
+    gap: 2rem;
+}
+
+.api-overview {
+    margin-bottom: 2rem;
+}
+
+.api-info {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+    gap: 1rem;
+    margin-bottom: 2rem;
+}
+
+.api-detail {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    flex-wrap: wrap;
+}
+
+.api-detail strong {
+    color: var(--gray-800);
+    min-width: 100px;
+}
+
+.api-detail code {
+    background: var(--gray-100);
+    padding: 0.25rem 0.5rem;
+    border-radius: 4px;
+    font-family: 'Monaco', 'Menlo', monospace;
+    font-size: 0.85rem;
+    color: var(--gray-800);
+}
+
+.api-links {
+    display: flex;
+    gap: 1rem;
+    flex-wrap: wrap;
+}
+
+.badge {
+    padding: 0.25rem 0.75rem;
+    border-radius: var(--radius-full);
+    font-size: 0.8rem;
+    font-weight: 600;
+}
+
+.badge-info {
+    background: rgba(59, 130, 246, 0.1);
+    color: var(--info);
+}
+
+.badge-success {
+    background: rgba(16, 185, 129, 0.1);
+    color: var(--success);
+}
+
+/* Endpoints */
+.endpoints-list {
+    display: flex;
+    flex-direction: column;
+    gap: 2rem;
+}
+
+.endpoint {
+    margin-bottom: 2rem;
+    padding-bottom: 2rem;
+    border-bottom: 1px solid var(--gray-200);
+}
+
+.endpoint:last-child {
+    border-bottom: none;
+    margin-bottom: 0;
+    padding-bottom: 0;
+}
+
+.endpoint-header {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    margin-bottom: 1rem;
+    flex-wrap: wrap;
+}
+
+.method {
+    padding: 0.25rem 0.75rem;
+    border-radius: 4px;
+    font-size: 0.8rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    min-width: 60px;
+    text-align: center;
+}
+
+.method-get {
+    background: rgba(34, 197, 94, 0.1);
+    color: #16a34a;
+}
+
+.method-post {
+    background: rgba(59, 130, 246, 0.1);
+    color: #2563eb;
+}
+
+.method-put {
+    background: rgba(245, 158, 11, 0.1);
+    color: #d97706;
+}
+
+.method-delete {
+    background: rgba(239, 68, 68, 0.1);
+    color: #dc2626;
+}
+
+.endpoint-title {
+    font-weight: 600;
+    color: var(--gray-800);
+}
+
+.endpoint-description {
+    margin-bottom: 1.5rem;
+}
+
+.endpoint-description p {
+    color: var(--gray-600);
+    margin: 0;
+}
+
+/* Code Blocks */
+.code-block {
+    background: var(--gray-900);
+    color: var(--gray-100);
+    padding: 1.5rem;
+    border-radius: var(--radius-md);
+    overflow-x: auto;
+    margin: 1rem 0;
+    position: relative;
+}
+
+.code-block pre {
+    margin: 0;
+    font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+    font-size: 0.85rem;
+    line-height: 1.5;
+    white-space: pre-wrap;
+}
+
+.code-block code {
+    color: inherit;
+    background: none;
+    padding: 0;
+}
+
+/* Parameters Table */
+.params-table {
+    overflow-x: auto;
+    margin: 1rem 0;
+}
+
+.params-table table {
+    width: 100%;
+    border-collapse: collapse;
+    background: white;
+    border: 1px solid var(--gray-200);
+    border-radius: var(--radius-md);
+    overflow: hidden;
+}
+
+.params-table th,
+.params-table td {
+    padding: 1rem;
+    text-align: left;
+    border-bottom: 1px solid var(--gray-200);
+}
+
+.params-table th {
+    background: var(--gray-50);
+    font-weight: 600;
+    color: var(--gray-800);
+}
+
+.params-table td {
+    color: var(--gray-600);
+}
+
+.params-table code {
+    background: var(--gray-100);
+    padding: 0.125rem 0.25rem;
+    border-radius: 2px;
+    font-size: 0.85rem;
+}
+
+/* Status Codes */
+.status-codes {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+}
+
+.status-code {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+}
+
+.code {
+    padding: 0.25rem 0.75rem;
+    border-radius: 4px;
+    font-weight: 700;
+    font-family: monospace;
+    min-width: 50px;
+    text-align: center;
+    font-size: 0.85rem;
+}
+
+.code-success {
+    background: rgba(34, 197, 94, 0.1);
+    color: #16a34a;
+}
+
+.code-error {
+    background: rgba(239, 68, 68, 0.1);
+    color: #dc2626;
+}
+
+/* Examples */
+.examples-content {
+    display: flex;
+    flex-direction: column;
+    gap: 2rem;
+}
+
+.example-item {
+    margin-bottom: 2rem;
+    padding-bottom: 2rem;
+    border-bottom: 1px solid var(--gray-200);
+}
+
+.example-item:last-child {
+    border-bottom: none;
+    margin-bottom: 0;
+    padding-bottom: 0;
+}
+
+.example-item h4 {
+    color: var(--gray-800);
+    margin-bottom: 1rem;
+    font-weight: 600;
+}
+
+/* Integration */
+.integration-content {
+    display: flex;
+    flex-direction: column;
+    gap: 2rem;
+}
+
+.webhook-setup {
+    display: flex;
+    flex-direction: column;
+    gap: 2rem;
+}
+
+.webhook-setup h5 {
+    color: var(--gray-800);
+    margin-bottom: 1rem;
+    font-weight: 600;
+}
+
+/* Troubleshooting */
+.troubleshooting-content {
+    display: flex;
+    flex-direction: column;
+    gap: 2rem;
+}
+
+.issue-item {
+    margin-bottom: 2rem;
+    padding-bottom: 2rem;
+    border-bottom: 1px solid var(--gray-200);
+}
+
+.issue-item:last-child {
+    border-bottom: none;
+    margin-bottom: 0;
+    padding-bottom: 0;
+}
+
+.issue-item h4 {
+    color: var(--gray-800);
+    margin-bottom: 0.5rem;
+    font-weight: 600;
+}
+
+.issue-item p {
+    color: var(--gray-600);
+    margin-bottom: 0.5rem;
+}
+
+.issue-item ul {
+    margin: 0.5rem 0;
+    padding-left: 1.5rem;
+}
+
+.issue-item li {
+    color: var(--gray-600);
+    margin-bottom: 0.25rem;
+}
+
+/* Contact Options */
+.contact-options {
+    display: flex;
+    flex-direction: column;
+    gap: 2rem;
+}
+
+.contact-option {
+    display: flex;
+    align-items: flex-start;
+    gap: 1rem;
+}
+
+.contact-option i {
+    color: var(--primary);
+    font-size: 1.5rem;
+    margin-top: 0.25rem;
+}
+
+.contact-option strong {
+    color: var(--gray-800);
+    display: block;
+    margin-bottom: 0.25rem;
+}
+
+.contact-option p {
+    color: var(--gray-600);
+    margin: 0 0 0.75rem;
+}
+
+/* Mobile Responsive */
+@media (max-width: 768px) {
+    .docs-title {
+        font-size: 2rem;
+        flex-direction: column;
+        gap: 0.5rem;
+    }
+
+    .docs-version {
+        flex-direction: column;
+        gap: 1rem;
+    }
+
+    .nav-toggle {
+        display: flex;
+    }
+
+    .docs-nav-menu {
+        display: none;
+        flex-direction: column;
+        background: white;
+        position: absolute;
+        top: 100%;
+        left: 0;
+        right: 0;
+        border-top: 1px solid var(--gray-200);
+        box-shadow: var(--shadow-lg);
+        z-index: 1000;
+        padding: 1rem 0;
+    }
+
+    .docs-nav-menu.show {
+        display: flex;
+    }
+
+    .docs-nav-menu .nav-link {
+        padding: 1rem 2rem;
+        border-radius: 0;
+    }
+
+    .docs-content {
+        padding: 1rem;
+    }
+
+    .content-grid {
+        grid-template-columns: 1fr;
+        gap: 1rem;
+    }
+
+    .card-content {
+        padding: 1.5rem;
+    }
+
+    .requirements-grid {
+        grid-template-columns: 1fr;
+        gap: 1.5rem;
+    }
+
+    .api-info {
+        grid-template-columns: 1fr;
+    }
+
+    .api-links {
+        flex-direction: column;
+    }
+
+    .endpoint-header {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 0.5rem;
+    }
+
+    .step-item {
+        flex-direction: column;
+        gap: 1rem;
+    }
+
+    .features-list {
+        gap: 1rem;
+    }
+
+    .contact-option {
+        flex-direction: column;
+        gap: 0.5rem;
+    }
+}
+
+/* Animations */
+@keyframes pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.5; }
+}
+
+/* Print Styles */
+@media print {
+    .docs-nav,
+    .nav-toggle,
+    .api-links {
+        display: none;
+    }
+
+    .docs-section {
+        display: block !important;
+        page-break-after: always;
+    }
+
+    .code-block {
+        background: var(--gray-100) !important;
+        color: var(--gray-900) !important;
+    }
+}
+</style>
+
+<script>
+// Documentation JavaScript
+document.addEventListener('DOMContentLoaded', function() {
+    initializeDocumentation();
+    checkApiStatus();
+    setupNavigation();
+});
+
+function initializeDocumentation() {
+    // Set up section navigation
+    const navLinks = document.querySelectorAll('.docs-nav-menu .nav-link');
+    const sections = document.querySelectorAll('.docs-section');
+    
+    navLinks.forEach(link => {
+        link.addEventListener('click', (e) => {
+            e.preventDefault();
+            const targetSection = link.dataset.section;
+            showSection(targetSection);
+            
+            // Update active nav link
+            navLinks.forEach(l => l.classList.remove('active'));
+            link.classList.add('active');
+            
+            // Close mobile nav
+            document.getElementById('docsNavMenu').classList.remove('show');
+        });
+    });
+    
+    // Handle hash navigation
+    if (window.location.hash) {
+        const sectionId = window.location.hash.substring(1);
+        showSection(sectionId);
+        
+        navLinks.forEach(link => {
+            link.classList.toggle('active', link.dataset.section === sectionId);
+        });
+    }
+}
+
+function showSection(sectionId) {
+    const sections = document.querySelectorAll('.docs-section');
+    sections.forEach(section => {
+        section.classList.toggle('active', section.id === sectionId);
+    });
+    
+    // Update URL hash
+    window.history.pushState(null, null, `#${sectionId}`);
+    
+    // Scroll to top of content
+    document.querySelector('.docs-content').scrollTop = 0;
+}
+
+function toggleDocsNav() {
+    const navMenu = document.getElementById('docsNavMenu');
+    navMenu.classList.toggle('show');
+}
+
+async function checkApiStatus() {
+    const statusElement = document.getElementById('apiStatusText');
+    const statusIcon = document.getElementById('apiStatus');
+    
+    try {
+        const response = await fetch('/api/v1/health/');
+        const data = await response.json();
+        
+        if (data.status === 'healthy') {
+            statusElement.textContent = 'Online';
+            statusIcon.style.color = '#4ade80';
+        } else {
+            statusElement.textContent = 'Issues Detected';
+            statusIcon.style.color = '#f59e0b';
+        }
+    } catch (error) {
+        statusElement.textContent = 'Offline';
+        statusIcon.style.color = '#ef4444';
+        statusIcon.style.animation = 'none';
+    }
+}
+
+async function testApiConnection() {
+    const button = event.target.closest('button');
+    const originalText = button.innerHTML;
+    
+    button.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Testing...';
+    button.disabled = true;
+    
+    try {
+        const response = await fetch('/api/v1/health/');
+        const data = await response.json();
+        
+        if (data.status === 'healthy') {
+            if (window.notifications) {
+                window.notifications.success('API connection successful!', 'Connection Test');
+            } else {
+                alert('✅ API connection successful!');
+            }
+        } else {
+            if (window.notifications) {
+                window.notifications.warning('API is running but has issues', 'Connection Test');
+            } else {
+                alert('⚠️ API is running but has issues');
+            }
+        }
+    } catch (error) {
+        if (window.notifications) {
+            window.notifications.error('Failed to connect to API', 'Connection Test');
+        } else {
+            alert('❌ Failed to connect to API');
+        }
+    } finally {
+        button.innerHTML = originalText;
+        button.disabled = false;
+    }
+}
+
+function copyToClipboard(selector) {
+    const element = document.querySelector(selector);
+    const text = element.textContent;
+    
+    if (navigator.clipboard) {
+        navigator.clipboard.writeText(text).then(() => {
+            if (window.notifications) {
+                window.notifications.success('Copied to clipboard!');
+            } else {
+                alert('Copied to clipboard!');
+            }
+        });
+    } else {
+        // Fallback for older browsers
+        const textArea = document.createElement('textarea');
+        textArea.value = text;
+        document.body.appendChild(textArea);
+        textArea.select();
+        try {
+            document.execCommand('copy');
+            if (window.notifications) {
+                window.notifications.success('Copied to clipboard!');
+            } else {
+                alert('Copied to clipboard!');
+            }
+        } catch (err) {
+            if (window.notifications) {
+                window.notifications.error('Failed to copy');
+            } else {
+                alert('Failed to copy');
+            }
+        }
+        document.body.removeChild(textArea);
+    }
+}
+
+function reportIssue() {
+    if (window.notifications) {
+        window.notifications.info('Bug report form would open here', 'Report Issue');
+    } else {
+        alert('Bug report form would open here. In a real implementation, this would open a form or redirect to a bug tracking system.');
+    }
+}
+
+function setupNavigation() {
+    // Handle smooth scrolling
+    document.documentElement.style.scrollBehavior = 'smooth';
+    
+    // Update base URL dynamically
+    const baseUrlElement = document.getElementById('baseUrl');
+    if (baseUrlElement) {
+        baseUrlElement.textContent = `${window.location.protocol}//${window.location.hostname}:5000/api/v1`;
+    }
+    
+    // Close mobile nav when clicking outside
+    document.addEventListener('click', (e) => {
+        const navMenu = document.getElementById('docsNavMenu');
+        const navToggle = document.querySelector('.nav-toggle');
+        
+        if (!navMenu.contains(e.target) && !navToggle.contains(e.target)) {
+            navMenu.classList.remove('show');
+        }
+    });
+    
+    // Handle window resize
+    window.addEventListener('resize', () => {
+        if (window.innerWidth >= 768) {
+            document.getElementById('docsNavMenu').classList.remove('show');
+        }
+    });
+}
+</script>
+
+{% endblock %}

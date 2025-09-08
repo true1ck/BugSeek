@@ -1,0 +1,115 @@
+{% extends "base.html" %}
+
+{% block title %}Upload Log - BugSeek{% endblock %}
+
+{% block content %}
+<h2>📤 Upload Error Log</h2>
+
+<div class="card">
+    <form method="POST" enctype="multipart/form-data">
+        <div class="grid">
+            <div>
+                <div class="form-group">
+                    <label for="file">Log File *</label>
+                    <input type="file" id="file" name="file" class="form-control" 
+                           accept=".txt,.log,.json,.xml" required>
+                    <small>Supported formats: TXT, LOG, JSON, XML (Max 16MB)</small>
+                </div>
+                
+                <div class="form-group">
+                    <label for="team_name">Team Name *</label>
+                    <input type="text" id="team_name" name="team_name" class="form-control" 
+                           placeholder="e.g., Frontend Team" required>
+                </div>
+                
+                <div class="form-group">
+                    <label for="module">Module *</label>
+                    <input type="text" id="module" name="module" class="form-control" 
+                           placeholder="e.g., Authentication" required>
+                </div>
+                
+            </div>
+            
+            <div>
+                <div class="form-group">
+                    <label for="owner">Owner *</label>
+                    <input type="email" id="owner" name="owner" class="form-control" 
+                           placeholder="e.g., john.doe@company.com" required>
+                </div>
+                
+                <div class="form-group">
+                    <label for="description">Error Description *</label>
+                    <textarea id="description" name="description" class="form-control" rows="4" 
+                              placeholder="Provide a detailed description of the error..." required></textarea>
+                </div>
+                
+                <div class="form-group">
+                    <label>
+                        <input type="checkbox" name="solution_possible"> 
+                        Solution Available
+                    </label>
+                    <small>Check if a solution is known for this error</small>
+                </div>
+            </div>
+        </div>
+        
+        <button type="submit" class="btn btn-success">🚀 Upload Log</button>
+        <a href="/" class="btn">Cancel</a>
+    </form>
+</div>
+
+<div class="card">
+    <h3>💡 Upload Tips</h3>
+    <ul>
+        <li>Ensure your log file contains relevant error information</li>
+        <li>Provide accurate team and module information for better categorization</li>
+        <li>Include detailed error descriptions for better AI analysis</li>
+        <li>Mark "Solution Available" if you already know how to fix this issue</li>
+    </ul>
+</div>
+
+<script>
+// File upload preview
+document.getElementById('file').addEventListener('change', function(e) {
+    const file = e.target.files[0];
+    if (file) {
+        const fileInfo = document.createElement('div');
+        fileInfo.innerHTML = `
+            <small>
+                <strong>Selected:</strong> ${file.name} 
+                (${(file.size/1024/1024).toFixed(2)} MB)
+            </small>
+        `;
+        fileInfo.style.marginTop = '0.5rem';
+        fileInfo.style.color = '#666';
+        
+        // Remove existing file info
+        const existing = this.parentNode.querySelector('.file-info');
+        if (existing) existing.remove();
+        
+        fileInfo.className = 'file-info';
+        this.parentNode.appendChild(fileInfo);
+    }
+});
+
+// Form validation
+document.querySelector('form').addEventListener('submit', function(e) {
+    const required = this.querySelectorAll('[required]');
+    let valid = true;
+    
+    required.forEach(field => {
+        if (!field.value.trim()) {
+            field.style.borderColor = '#dc3545';
+            valid = false;
+        } else {
+            field.style.borderColor = '#ddd';
+        }
+    });
+    
+    if (!valid) {
+        e.preventDefault();
+        alert('Please fill in all required fields marked with *');
+    }
+});
+</script>
+{% endblock %}

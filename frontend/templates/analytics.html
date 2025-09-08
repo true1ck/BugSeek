@@ -1,0 +1,1451 @@
+{% extends "base.html" %}
+
+{% block title %}Analytics Dashboard - BugSeek{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <h1 class="page-title">
+        <i class="fas fa-chart-line"></i>
+        Analytics Dashboard
+    </h1>
+    <p class="page-subtitle">
+        Comprehensive insights into your error logs, team performance, and system health
+    </p>
+</div>
+
+<!-- Key Metrics Overview -->
+<div class="metrics-grid">
+    <div class="metric-card primary">
+        <div class="metric-icon">
+            <i class="fas fa-exclamation-triangle"></i>
+        </div>
+        <div class="metric-content">
+            <div class="metric-value" id="totalErrors">Loading...</div>
+            <div class="metric-label">Total Error Logs</div>
+            <div class="metric-change positive">
+                <i class="fas fa-arrow-up"></i>
+                <span>+12% from last month</span>
+            </div>
+        </div>
+    </div>
+
+    <div class="metric-card success">
+        <div class="metric-icon">
+            <i class="fas fa-check-circle"></i>
+        </div>
+        <div class="metric-content">
+            <div class="metric-value" id="resolvedErrors">Loading...</div>
+            <div class="metric-label">Resolved Errors</div>
+            <div class="metric-change positive">
+                <i class="fas fa-arrow-up"></i>
+                <span>+8% from last month</span>
+            </div>
+        </div>
+    </div>
+
+    <div class="metric-card warning">
+        <div class="metric-icon">
+            <i class="fas fa-percentage"></i>
+        </div>
+        <div class="metric-content">
+            <div class="metric-value" id="solutionRate">Loading...</div>
+            <div class="metric-label">Solution Rate</div>
+            <div class="metric-change positive">
+                <i class="fas fa-arrow-up"></i>
+                <span>+5% from last month</span>
+            </div>
+        </div>
+    </div>
+
+    <div class="metric-card info">
+        <div class="metric-icon">
+            <i class="fas fa-clock"></i>
+        </div>
+        <div class="metric-content">
+            <div class="metric-value" id="avgResponseTime">Loading...</div>
+            <div class="metric-label">Avg Response Time</div>
+            <div class="metric-change negative">
+                <i class="fas fa-arrow-down"></i>
+                <span>-15% from last month</span>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Time Range Selector -->
+<div class="card time-selector-card">
+    <div class="time-selector">
+        <div class="time-buttons">
+            <button class="time-btn active" data-range="7d">Last 7 Days</button>
+            <button class="time-btn" data-range="30d">Last 30 Days</button>
+            <button class="time-btn" data-range="90d">Last 90 Days</button>
+            <button class="time-btn" data-range="1y">Last Year</button>
+        </div>
+        <div class="custom-range">
+            <input type="date" id="startDate" class="form-control">
+            <span>to</span>
+            <input type="date" id="endDate" class="form-control">
+            <button class="btn btn-outline" onclick="applyCustomRange()">Apply</button>
+        </div>
+    </div>
+</div>
+
+<!-- Charts Grid -->
+<div class="charts-grid">
+    <!-- Error Trends Chart -->
+    <div class="card chart-card">
+        <div class="chart-header">
+            <h3><i class="fas fa-chart-line"></i> Error Trends Over Time</h3>
+            <div class="chart-controls">
+                <select id="trendMetric" class="form-control">
+                    <option value="count">Error Count</option>
+                    <option value="teams">Active Teams</option>
+                    <option value="modules">Affected Modules</option>
+                </select>
+            </div>
+        </div>
+        <div class="chart-container">
+            <canvas id="trendsChart"></canvas>
+        </div>
+    </div>
+
+    <!-- Team Performance Chart -->
+    <div class="card chart-card">
+        <div class="chart-header">
+            <h3><i class="fas fa-users"></i> Team Performance</h3>
+            <div class="chart-controls">
+                <select id="teamMetric" class="form-control">
+                    <option value="errors">Total Errors</option>
+                    <option value="resolution">Resolution Rate</option>
+                    <option value="response">Response Time</option>
+                </select>
+            </div>
+        </div>
+        <div class="chart-container">
+            <canvas id="teamChart"></canvas>
+        </div>
+    </div>
+
+    <!-- Module Distribution -->
+    <div class="card chart-card">
+        <div class="chart-header">
+            <h3><i class="fas fa-puzzle-piece"></i> Errors by Module</h3>
+            <div class="chart-legend" id="moduleLegend"></div>
+        </div>
+        <div class="chart-container">
+            <canvas id="moduleChart"></canvas>
+        </div>
+    </div>
+
+    <!-- Error Types Distribution -->
+    <div class="card chart-card">
+        <div class="chart-header">
+            <h3><i class="fas fa-tags"></i> Error Types Distribution</h3>
+            <div class="chart-controls">
+                <button class="btn btn-outline btn-sm" onclick="toggleChart('errorTypes', 'pie')">
+                    <i class="fas fa-chart-pie"></i>
+                </button>
+                <button class="btn btn-outline btn-sm" onclick="toggleChart('errorTypes', 'bar')">
+                    <i class="fas fa-chart-bar"></i>
+                </button>
+            </div>
+        </div>
+        <div class="chart-container">
+            <canvas id="errorTypesChart"></canvas>
+        </div>
+    </div>
+
+    <!-- Solution Success Heatmap -->
+    <div class="card chart-card full-width">
+        <div class="chart-header">
+            <h3><i class="fas fa-th"></i> Team vs Module Solution Heatmap</h3>
+            <div class="chart-info">
+                <i class="fas fa-info-circle" title="Darker colors indicate higher solution success rates"></i>
+            </div>
+        </div>
+        <div class="chart-container">
+            <div id="heatmapChart"></div>
+        </div>
+    </div>
+
+    <!-- Real-time Activity Feed -->
+    <div class="card activity-card">
+        <div class="chart-header">
+            <h3><i class="fas fa-activity"></i> Real-time Activity</h3>
+            <div class="activity-status">
+                <span class="status-indicator active"></span>
+                <span>Live</span>
+            </div>
+        </div>
+        <div class="activity-feed" id="activityFeed">
+            <div class="activity-item">
+                <div class="activity-time">2 minutes ago</div>
+                <div class="activity-content">
+                    <span class="activity-type error">New Error</span>
+                    <span class="activity-description">TimeoutException in Frontend/Authentication</span>
+                </div>
+            </div>
+            <div class="activity-item">
+                <div class="activity-time">5 minutes ago</div>
+                <div class="activity-content">
+                    <span class="activity-type success">Resolved</span>
+                    <span class="activity-description">ValidationError marked as solved by john.doe@company.com</span>
+                </div>
+            </div>
+            <div class="activity-item">
+                <div class="activity-time">8 minutes ago</div>
+                <div class="activity-content">
+                    <span class="activity-type warning">Alert</span>
+                    <span class="activity-description">High error rate detected in Backend team</span>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Advanced Analytics Section -->
+<div class="card advanced-analytics">
+    <div class="card-header">
+        <h3><i class="fas fa-microscope"></i> Advanced Analytics</h3>
+        <p>Deep insights and predictive analytics for your error management</p>
+    </div>
+    
+    <div class="analytics-tabs">
+        <div class="tab-buttons">
+            <button class="tab-btn active" data-tab="patterns">Error Patterns</button>
+            <button class="tab-btn" data-tab="predictions">Predictions</button>
+            <button class="tab-btn" data-tab="correlations">Correlations</button>
+            <button class="tab-btn" data-tab="recommendations">Recommendations</button>
+        </div>
+
+        <div class="tab-content">
+            <div class="tab-panel active" id="patterns">
+                <div class="analytics-grid">
+                    <div class="analytics-item">
+                        <h4>Recurring Error Patterns</h4>
+                        <div class="pattern-list">
+                            <div class="pattern-item">
+                                <div class="pattern-info">
+                                    <span class="pattern-name">Authentication Timeout Spike</span>
+                                    <span class="pattern-frequency">Occurs every Monday morning</span>
+                                </div>
+                                <div class="pattern-impact high">High Impact</div>
+                            </div>
+                            <div class="pattern-item">
+                                <div class="pattern-info">
+                                    <span class="pattern-name">Database Connection Pool Exhaustion</span>
+                                    <span class="pattern-frequency">Peak traffic hours (2-4 PM)</span>
+                                </div>
+                                <div class="pattern-impact medium">Medium Impact</div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="analytics-item">
+                        <h4>Error Clustering Analysis</h4>
+                        <div class="cluster-visualization">
+                            <canvas id="clusterChart"></canvas>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="tab-panel" id="predictions">
+                <div class="predictions-grid">
+                    <div class="prediction-card">
+                        <div class="prediction-icon">
+                            <i class="fas fa-exclamation-triangle"></i>
+                        </div>
+                        <div class="prediction-content">
+                            <h4>Error Spike Prediction</h4>
+                            <p>Based on current trends, expect a 25% increase in authentication errors next Monday</p>
+                            <div class="prediction-confidence">
+                                <span>Confidence: 87%</span>
+                                <div class="confidence-bar">
+                                    <div class="confidence-fill" style="width: 87%"></div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="prediction-card">
+                        <div class="prediction-icon">
+                            <i class="fas fa-users"></i>
+                        </div>
+                        <div class="prediction-content">
+                            <h4>Team Workload Forecast</h4>
+                            <p>Frontend team workload expected to increase by 40% in the next 7 days</p>
+                            <div class="prediction-confidence">
+                                <span>Confidence: 73%</span>
+                                <div class="confidence-bar">
+                                    <div class="confidence-fill" style="width: 73%"></div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="tab-panel" id="correlations">
+                <div class="correlation-matrix">
+                    <h4>Error Correlation Matrix</h4>
+                    <div class="matrix-container">
+                        <canvas id="correlationChart"></canvas>
+                    </div>
+                </div>
+            </div>
+
+            <div class="tab-panel" id="recommendations">
+                <div class="recommendations-list">
+                    <div class="recommendation-item priority-high">
+                        <div class="recommendation-header">
+                            <i class="fas fa-fire"></i>
+                            <h4>High Priority</h4>
+                        </div>
+                        <div class="recommendation-content">
+                            <p><strong>Implement connection pooling</strong> for database connections. 60% of timeout errors could be prevented.</p>
+                            <div class="recommendation-impact">Estimated Impact: -60% timeout errors</div>
+                        </div>
+                    </div>
+
+                    <div class="recommendation-item priority-medium">
+                        <div class="recommendation-header">
+                            <i class="fas fa-exclamation"></i>
+                            <h4>Medium Priority</h4>
+                        </div>
+                        <div class="recommendation-content">
+                            <p><strong>Increase monitoring</strong> for Frontend team during peak hours (2-4 PM).</p>
+                            <div class="recommendation-impact">Estimated Impact: +25% faster resolution</div>
+                        </div>
+                    </div>
+
+                    <div class="recommendation-item priority-low">
+                        <div class="recommendation-header">
+                            <i class="fas fa-info"></i>
+                            <h4>Low Priority</h4>
+                        </div>
+                        <div class="recommendation-content">
+                            <p><strong>Schedule team training</strong> on error handling best practices for Mobile team.</p>
+                            <div class="recommendation-impact">Estimated Impact: +15% solution rate</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Include Chart.js -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns"></script>
+
+<style>
+/* Analytics Dashboard Styles */
+.page-header {
+    text-align: center;
+    margin-bottom: 3rem;
+}
+
+/* Metrics Grid */
+.metrics-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: 2rem;
+    margin-bottom: 3rem;
+}
+
+.metric-card {
+    background: white;
+    border-radius: var(--radius-lg);
+    padding: 2rem;
+    box-shadow: var(--shadow-lg);
+    border: 1px solid var(--gray-200);
+    display: flex;
+    align-items: center;
+    gap: 1.5rem;
+    position: relative;
+    overflow: hidden;
+    transition: all 0.3s ease;
+}
+
+.metric-card::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 4px;
+    background: var(--primary);
+}
+
+.metric-card.success::before { background: var(--success); }
+.metric-card.warning::before { background: var(--warning); }
+.metric-card.info::before { background: linear-gradient(90deg, #3b82f6, #1d4ed8); }
+
+.metric-card:hover {
+    transform: translateY(-4px);
+    box-shadow: var(--shadow-xl);
+}
+
+.metric-icon {
+    width: 60px;
+    height: 60px;
+    border-radius: var(--radius-md);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.75rem;
+    color: white;
+    background: var(--gradient-primary);
+    flex-shrink: 0;
+}
+
+.metric-card.success .metric-icon { background: var(--gradient-success); }
+.metric-card.warning .metric-icon { background: var(--gradient-warning); }
+.metric-card.info .metric-icon { background: linear-gradient(135deg, #3b82f6, #1d4ed8); }
+
+.metric-content {
+    flex: 1;
+}
+
+.metric-value {
+    font-size: 2.5rem;
+    font-weight: 800;
+    color: var(--gray-800);
+    line-height: 1;
+    margin-bottom: 0.5rem;
+}
+
+.metric-label {
+    font-weight: 600;
+    color: var(--gray-600);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    font-size: 0.9rem;
+    margin-bottom: 0.5rem;
+}
+
+.metric-change {
+    display: flex;
+    align-items: center;
+    gap: 0.25rem;
+    font-size: 0.8rem;
+    font-weight: 500;
+}
+
+.metric-change.positive {
+    color: var(--success);
+}
+
+.metric-change.negative {
+    color: var(--danger);
+}
+
+/* Time Selector */
+.time-selector-card {
+    margin-bottom: 2rem;
+}
+
+.time-selector {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 1rem;
+}
+
+.time-buttons {
+    display: flex;
+    gap: 0.5rem;
+}
+
+.time-btn {
+    padding: 0.75rem 1.5rem;
+    border: 2px solid var(--gray-200);
+    background: white;
+    color: var(--gray-700);
+    border-radius: var(--radius-full);
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.time-btn:hover {
+    border-color: var(--primary);
+    color: var(--primary);
+}
+
+.time-btn.active {
+    background: var(--primary);
+    border-color: var(--primary);
+    color: white;
+}
+
+.custom-range {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.custom-range input {
+    width: 140px;
+}
+
+/* Charts Grid */
+.charts-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(500px, 1fr));
+    gap: 2rem;
+    margin-bottom: 3rem;
+}
+
+.chart-card {
+    min-height: 400px;
+}
+
+.chart-card.full-width {
+    grid-column: 1 / -1;
+}
+
+.chart-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 1.5rem;
+    padding-bottom: 1rem;
+    border-bottom: 1px solid var(--gray-200);
+}
+
+.chart-header h3 {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    color: var(--gray-800);
+    font-size: 1.125rem;
+    margin: 0;
+}
+
+.chart-controls {
+    display: flex;
+    gap: 0.5rem;
+}
+
+.chart-controls .form-control {
+    width: 160px;
+}
+
+.chart-container {
+    position: relative;
+    height: 300px;
+}
+
+.chart-legend {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 1rem;
+    font-size: 0.875rem;
+}
+
+.legend-item {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.legend-color {
+    width: 12px;
+    height: 12px;
+    border-radius: 2px;
+}
+
+/* Activity Card */
+.activity-card {
+    grid-row: span 2;
+}
+
+.activity-status {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-size: 0.875rem;
+    color: var(--gray-600);
+}
+
+.status-indicator {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: var(--gray-400);
+}
+
+.status-indicator.active {
+    background: var(--success);
+    animation: pulse 2s infinite;
+}
+
+@keyframes pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.5; }
+}
+
+.activity-feed {
+    max-height: 400px;
+    overflow-y: auto;
+}
+
+.activity-item {
+    padding: 1rem;
+    border-bottom: 1px solid var(--gray-100);
+    transition: background-color 0.3s ease;
+}
+
+.activity-item:hover {
+    background: var(--gray-50);
+}
+
+.activity-item:last-child {
+    border-bottom: none;
+}
+
+.activity-time {
+    font-size: 0.75rem;
+    color: var(--gray-500);
+    margin-bottom: 0.5rem;
+}
+
+.activity-content {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    flex-wrap: wrap;
+}
+
+.activity-type {
+    padding: 0.25rem 0.75rem;
+    border-radius: var(--radius-full);
+    font-size: 0.75rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+
+.activity-type.error {
+    background: rgba(239, 68, 68, 0.1);
+    color: var(--danger);
+}
+
+.activity-type.success {
+    background: rgba(16, 185, 129, 0.1);
+    color: var(--success);
+}
+
+.activity-type.warning {
+    background: rgba(245, 158, 11, 0.1);
+    color: var(--warning);
+}
+
+.activity-description {
+    color: var(--gray-700);
+    font-size: 0.875rem;
+}
+
+/* Advanced Analytics */
+.advanced-analytics {
+    background: var(--gradient-primary);
+    color: white;
+    border: none;
+}
+
+.advanced-analytics .card-header h3,
+.advanced-analytics .card-header p {
+    color: white;
+}
+
+.analytics-tabs {
+    margin-top: 2rem;
+}
+
+.tab-buttons {
+    display: flex;
+    gap: 0.5rem;
+    margin-bottom: 2rem;
+    flex-wrap: wrap;
+}
+
+.tab-btn {
+    padding: 0.75rem 1.5rem;
+    background: rgba(255, 255, 255, 0.1);
+    border: 1px solid rgba(255, 255, 255, 0.3);
+    color: white;
+    border-radius: var(--radius-full);
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.tab-btn:hover {
+    background: rgba(255, 255, 255, 0.2);
+}
+
+.tab-btn.active {
+    background: white;
+    color: var(--primary);
+}
+
+.tab-panel {
+    display: none;
+}
+
+.tab-panel.active {
+    display: block;
+}
+
+.analytics-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    gap: 2rem;
+}
+
+.analytics-item {
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: var(--radius-md);
+    padding: 1.5rem;
+    backdrop-filter: blur(10px);
+}
+
+.analytics-item h4 {
+    color: white;
+    margin-bottom: 1rem;
+}
+
+/* Pattern Analysis */
+.pattern-list {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+}
+
+.pattern-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 1rem;
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: var(--radius-sm);
+}
+
+.pattern-info {
+    flex: 1;
+}
+
+.pattern-name {
+    display: block;
+    color: white;
+    font-weight: 600;
+    margin-bottom: 0.25rem;
+}
+
+.pattern-frequency {
+    color: rgba(255, 255, 255, 0.8);
+    font-size: 0.875rem;
+}
+
+.pattern-impact {
+    padding: 0.25rem 0.75rem;
+    border-radius: var(--radius-full);
+    font-size: 0.75rem;
+    font-weight: 600;
+    text-transform: uppercase;
+}
+
+.pattern-impact.high {
+    background: rgba(239, 68, 68, 0.2);
+    color: #fca5a5;
+}
+
+.pattern-impact.medium {
+    background: rgba(245, 158, 11, 0.2);
+    color: #fcd34d;
+}
+
+/* Predictions */
+.predictions-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+    gap: 1.5rem;
+}
+
+.prediction-card {
+    display: flex;
+    gap: 1rem;
+    padding: 1.5rem;
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: var(--radius-md);
+    backdrop-filter: blur(10px);
+}
+
+.prediction-icon {
+    width: 48px;
+    height: 48px;
+    border-radius: var(--radius-md);
+    background: rgba(255, 255, 255, 0.2);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    font-size: 1.5rem;
+    flex-shrink: 0;
+}
+
+.prediction-content h4 {
+    color: white;
+    margin-bottom: 0.5rem;
+}
+
+.prediction-content p {
+    color: rgba(255, 255, 255, 0.9);
+    line-height: 1.5;
+    margin-bottom: 1rem;
+}
+
+.prediction-confidence {
+    color: rgba(255, 255, 255, 0.8);
+    font-size: 0.875rem;
+}
+
+.confidence-bar {
+    width: 100%;
+    height: 4px;
+    background: rgba(255, 255, 255, 0.2);
+    border-radius: 2px;
+    overflow: hidden;
+    margin-top: 0.5rem;
+}
+
+.confidence-fill {
+    height: 100%;
+    background: white;
+    transition: width 0.3s ease;
+}
+
+/* Recommendations */
+.recommendations-list {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+}
+
+.recommendation-item {
+    padding: 1.5rem;
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: var(--radius-md);
+    border-left: 4px solid;
+}
+
+.recommendation-item.priority-high {
+    border-left-color: #ef4444;
+}
+
+.recommendation-item.priority-medium {
+    border-left-color: #f59e0b;
+}
+
+.recommendation-item.priority-low {
+    border-left-color: #3b82f6;
+}
+
+.recommendation-header {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    margin-bottom: 1rem;
+}
+
+.recommendation-header h4 {
+    color: white;
+    margin: 0;
+}
+
+.recommendation-content p {
+    color: rgba(255, 255, 255, 0.9);
+    line-height: 1.5;
+    margin-bottom: 0.75rem;
+}
+
+.recommendation-impact {
+    color: rgba(255, 255, 255, 0.8);
+    font-size: 0.875rem;
+    font-weight: 500;
+}
+
+/* Mobile Responsive */
+@media (max-width: 768px) {
+    .metrics-grid {
+        grid-template-columns: 1fr;
+    }
+    
+    .charts-grid {
+        grid-template-columns: 1fr;
+    }
+    
+    .time-selector {
+        flex-direction: column;
+        align-items: stretch;
+    }
+    
+    .time-buttons {
+        justify-content: center;
+    }
+    
+    .custom-range {
+        justify-content: center;
+    }
+    
+    .chart-header {
+        flex-direction: column;
+        align-items: stretch;
+        gap: 1rem;
+    }
+    
+    .tab-buttons {
+        justify-content: center;
+    }
+    
+    .analytics-grid {
+        grid-template-columns: 1fr;
+    }
+    
+    .predictions-grid {
+        grid-template-columns: 1fr;
+    }
+}
+</style>
+
+<script>
+// Analytics Dashboard JavaScript
+let charts = {};
+let currentTimeRange = '7d';
+
+document.addEventListener('DOMContentLoaded', function() {
+    initializeDashboard();
+    setupEventListeners();
+    loadDashboardData();
+    startRealTimeUpdates();
+});
+
+function initializeDashboard() {
+    // Initialize all charts
+    initializeTrendsChart();
+    initializeTeamChart();
+    initializeModuleChart();
+    initializeErrorTypesChart();
+    initializeClusterChart();
+    initializeCorrelationChart();
+    
+    // Set default date range
+    const endDate = new Date();
+    const startDate = new Date();
+    startDate.setDate(endDate.getDate() - 7);
+    
+    document.getElementById('endDate').value = endDate.toISOString().split('T')[0];
+    document.getElementById('startDate').value = startDate.toISOString().split('T')[0];
+}
+
+function setupEventListeners() {
+    // Time range buttons
+    document.querySelectorAll('.time-btn').forEach(btn => {
+        btn.addEventListener('click', function() {
+            document.querySelectorAll('.time-btn').forEach(b => b.classList.remove('active'));
+            this.classList.add('active');
+            currentTimeRange = this.dataset.range;
+            updateDateInputs();
+            refreshDashboard();
+        });
+    });
+    
+    // Tab switching
+    document.querySelectorAll('.tab-btn').forEach(btn => {
+        btn.addEventListener('click', function() {
+            const tabId = this.dataset.tab;
+            switchTab(tabId);
+        });
+    });
+    
+    // Chart controls
+    document.getElementById('trendMetric').addEventListener('change', updateTrendsChart);
+    document.getElementById('teamMetric').addEventListener('change', updateTeamChart);
+}
+
+function updateDateInputs() {
+    const endDate = new Date();
+    let startDate = new Date();
+    
+    switch(currentTimeRange) {
+        case '7d':
+            startDate.setDate(endDate.getDate() - 7);
+            break;
+        case '30d':
+            startDate.setDate(endDate.getDate() - 30);
+            break;
+        case '90d':
+            startDate.setDate(endDate.getDate() - 90);
+            break;
+        case '1y':
+            startDate.setFullYear(endDate.getFullYear() - 1);
+            break;
+    }
+    
+    document.getElementById('endDate').value = endDate.toISOString().split('T')[0];
+    document.getElementById('startDate').value = startDate.toISOString().split('T')[0];
+}
+
+function loadDashboardData() {
+    // Update key metrics
+    animateMetric('totalErrors', 0, 250, 1500);
+    animateMetric('resolvedErrors', 0, 195, 1500);
+    animateMetric('solutionRate', 0, 78, 1500, '%');
+    animateMetric('avgResponseTime', 0, 2.3, 1500, 'h');
+    
+    // Load chart data
+    refreshAllCharts();
+}
+
+function animateMetric(elementId, start, end, duration, suffix = '') {
+    const element = document.getElementById(elementId);
+    const startTime = performance.now();
+    
+    function updateValue(currentTime) {
+        const elapsed = currentTime - startTime;
+        const progress = Math.min(elapsed / duration, 1);
+        const currentValue = start + (end - start) * progress;
+        
+        element.textContent = Math.floor(currentValue) + suffix;
+        
+        if (progress < 1) {
+            requestAnimationFrame(updateValue);
+        }
+    }
+    
+    requestAnimationFrame(updateValue);
+}
+
+function initializeTrendsChart() {
+    const ctx = document.getElementById('trendsChart').getContext('2d');
+    charts.trends = new Chart(ctx, {
+        type: 'line',
+        data: {
+            labels: [],
+            datasets: [{
+                label: 'Error Count',
+                data: [],
+                borderColor: 'rgb(99, 102, 241)',
+                backgroundColor: 'rgba(99, 102, 241, 0.1)',
+                fill: true,
+                tension: 0.4
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: {
+                    display: false
+                }
+            },
+            scales: {
+                y: {
+                    beginAtZero: true,
+                    grid: {
+                        color: 'rgba(0, 0, 0, 0.1)'
+                    }
+                },
+                x: {
+                    grid: {
+                        display: false
+                    }
+                }
+            }
+        }
+    });
+}
+
+function initializeTeamChart() {
+    const ctx = document.getElementById('teamChart').getContext('2d');
+    charts.team = new Chart(ctx, {
+        type: 'bar',
+        data: {
+            labels: ['Frontend', 'Backend', 'Mobile', 'DevOps', 'QA', 'Data Science'],
+            datasets: [{
+                label: 'Total Errors',
+                data: [45, 38, 28, 22, 15, 12],
+                backgroundColor: [
+                    'rgba(99, 102, 241, 0.8)',
+                    'rgba(16, 185, 129, 0.8)',
+                    'rgba(245, 158, 11, 0.8)',
+                    'rgba(239, 68, 68, 0.8)',
+                    'rgba(59, 130, 246, 0.8)',
+                    'rgba(147, 51, 234, 0.8)'
+                ],
+                borderRadius: 4,
+                borderSkipped: false
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: {
+                    display: false
+                }
+            },
+            scales: {
+                y: {
+                    beginAtZero: true
+                }
+            }
+        }
+    });
+}
+
+function initializeModuleChart() {
+    const ctx = document.getElementById('moduleChart').getContext('2d');
+    const moduleData = {
+        labels: ['Authentication', 'Payment', 'Database', 'API Gateway', 'Notification', 'Search'],
+        datasets: [{
+            data: [30, 25, 20, 15, 8, 2],
+            backgroundColor: [
+                '#6366f1',
+                '#10b981',
+                '#f59e0b',
+                '#ef4444',
+                '#3b82f6',
+                '#8b5cf6'
+            ],
+            borderWidth: 0
+        }]
+    };
+    
+    charts.module = new Chart(ctx, {
+        type: 'doughnut',
+        data: moduleData,
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: {
+                    display: false
+                }
+            },
+            cutout: '60%'
+        }
+    });
+    
+    // Create custom legend
+    createModuleLegend(moduleData);
+}
+
+function createModuleLegend(data) {
+    const legendContainer = document.getElementById('moduleLegend');
+    legendContainer.innerHTML = data.labels.map((label, index) => `
+        <div class="legend-item">
+            <div class="legend-color" style="background-color: ${data.datasets[0].backgroundColor[index]}"></div>
+            <span>${label}</span>
+        </div>
+    `).join('');
+}
+
+function initializeErrorTypesChart() {
+    const ctx = document.getElementById('errorTypesChart').getContext('2d');
+    charts.errorTypes = new Chart(ctx, {
+        type: 'pie',
+        data: {
+            labels: ['TimeoutException', 'ValidationError', 'DatabaseError', 'AuthenticationError', 'NetworkError'],
+            datasets: [{
+                data: [35, 28, 22, 10, 5],
+                backgroundColor: [
+                    '#6366f1',
+                    '#10b981',
+                    '#f59e0b',
+                    '#ef4444',
+                    '#3b82f6'
+                ]
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false
+        }
+    });
+}
+
+function initializeClusterChart() {
+    const ctx = document.getElementById('clusterChart').getContext('2d');
+    charts.cluster = new Chart(ctx, {
+        type: 'scatter',
+        data: {
+            datasets: [{
+                label: 'Error Clusters',
+                data: generateClusterData(),
+                backgroundColor: 'rgba(99, 102, 241, 0.6)',
+                borderColor: 'rgb(99, 102, 241)',
+                pointRadius: 4
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            scales: {
+                x: {
+                    title: {
+                        display: true,
+                        text: 'Error Frequency'
+                    }
+                },
+                y: {
+                    title: {
+                        display: true,
+                        text: 'Impact Score'
+                    }
+                }
+            }
+        }
+    });
+}
+
+function initializeCorrelationChart() {
+    const ctx = document.getElementById('correlationChart').getContext('2d');
+    // Implementation for correlation matrix would go here
+    // This is a simplified version
+    charts.correlation = new Chart(ctx, {
+        type: 'bar',
+        data: {
+            labels: ['Auth-Payment', 'DB-Network', 'Frontend-Backend'],
+            datasets: [{
+                label: 'Correlation Strength',
+                data: [0.8, 0.6, 0.4],
+                backgroundColor: ['#ef4444', '#f59e0b', '#10b981']
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            scales: {
+                y: {
+                    beginAtZero: true,
+                    max: 1
+                }
+            }
+        }
+    });
+}
+
+function generateClusterData() {
+    const data = [];
+    for (let i = 0; i < 50; i++) {
+        data.push({
+            x: Math.random() * 100,
+            y: Math.random() * 10
+        });
+    }
+    return data;
+}
+
+function refreshAllCharts() {
+    // Update all charts with new data based on current time range
+    updateTrendsChart();
+    updateTeamChart();
+    // ... update other charts
+}
+
+function updateTrendsChart() {
+    const metric = document.getElementById('trendMetric').value;
+    const chart = charts.trends;
+    
+    // Generate mock data based on metric selection
+    const labels = generateDateLabels();
+    const data = generateTrendData(metric);
+    
+    chart.data.labels = labels;
+    chart.data.datasets[0].data = data;
+    chart.data.datasets[0].label = getMetricLabel(metric);
+    chart.update();
+}
+
+function updateTeamChart() {
+    const metric = document.getElementById('teamMetric').value;
+    const chart = charts.team;
+    
+    // Update data based on metric selection
+    const data = generateTeamData(metric);
+    
+    chart.data.datasets[0].data = data;
+    chart.data.datasets[0].label = getMetricLabel(metric);
+    chart.update();
+}
+
+function generateDateLabels() {
+    const labels = [];
+    const days = currentTimeRange === '7d' ? 7 : currentTimeRange === '30d' ? 30 : 90;
+    const today = new Date();
+    
+    for (let i = days - 1; i >= 0; i--) {
+        const date = new Date(today);
+        date.setDate(date.getDate() - i);
+        labels.push(date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }));
+    }
+    
+    return labels;
+}
+
+function generateTrendData(metric) {
+    const days = currentTimeRange === '7d' ? 7 : currentTimeRange === '30d' ? 30 : 90;
+    const data = [];
+    
+    for (let i = 0; i < days; i++) {
+        let value;
+        switch(metric) {
+            case 'count':
+                value = Math.floor(Math.random() * 20) + 5;
+                break;
+            case 'teams':
+                value = Math.floor(Math.random() * 6) + 1;
+                break;
+            case 'modules':
+                value = Math.floor(Math.random() * 8) + 2;
+                break;
+        }
+        data.push(value);
+    }
+    
+    return data;
+}
+
+function generateTeamData(metric) {
+    const teams = 6;
+    const data = [];
+    
+    for (let i = 0; i < teams; i++) {
+        let value;
+        switch(metric) {
+            case 'errors':
+                value = Math.floor(Math.random() * 40) + 10;
+                break;
+            case 'resolution':
+                value = Math.floor(Math.random() * 30) + 60;
+                break;
+            case 'response':
+                value = Math.floor(Math.random() * 3) + 1;
+                break;
+        }
+        data.push(value);
+    }
+    
+    return data;
+}
+
+function getMetricLabel(metric) {
+    const labels = {
+        'count': 'Error Count',
+        'teams': 'Active Teams',
+        'modules': 'Affected Modules',
+        'errors': 'Total Errors',
+        'resolution': 'Resolution Rate (%)',
+        'response': 'Response Time (hours)'
+    };
+    
+    return labels[metric] || 'Metric';
+}
+
+function switchTab(tabId) {
+    // Update tab buttons
+    document.querySelectorAll('.tab-btn').forEach(btn => {
+        btn.classList.toggle('active', btn.dataset.tab === tabId);
+    });
+    
+    // Update tab panels
+    document.querySelectorAll('.tab-panel').forEach(panel => {
+        panel.classList.toggle('active', panel.id === tabId);
+    });
+}
+
+function toggleChart(chartId, type) {
+    // Implementation for toggling chart types
+    console.log(`Toggling ${chartId} to ${type}`);
+}
+
+function applyCustomRange() {
+    const startDate = document.getElementById('startDate').value;
+    const endDate = document.getElementById('endDate').value;
+    
+    if (startDate && endDate) {
+        // Remove active class from time buttons
+        document.querySelectorAll('.time-btn').forEach(btn => btn.classList.remove('active'));
+        
+        // Update dashboard with custom range
+        refreshDashboard();
+    }
+}
+
+function refreshDashboard() {
+    // Simulate API call to refresh data
+    setTimeout(() => {
+        loadDashboardData();
+    }, 500);
+}
+
+function startRealTimeUpdates() {
+    // Update activity feed every 30 seconds
+    setInterval(updateActivityFeed, 30000);
+    
+    // Update metrics every 2 minutes
+    setInterval(() => {
+        // Simulate small changes in metrics
+        const totalErrors = parseInt(document.getElementById('totalErrors').textContent);
+        const newTotal = totalErrors + Math.floor(Math.random() * 5);
+        animateMetric('totalErrors', totalErrors, newTotal, 1000);
+    }, 120000);
+}
+
+function updateActivityFeed() {
+    const activities = [
+        {
+            type: 'error',
+            description: 'New TimeoutException in Frontend/Authentication',
+            time: 'Just now'
+        },
+        {
+            type: 'success',
+            description: 'ValidationError marked as resolved by team lead',
+            time: '1 minute ago'
+        },
+        {
+            type: 'warning',
+            description: 'High error rate detected in Payment module',
+            time: '3 minutes ago'
+        }
+    ];
+    
+    const feed = document.getElementById('activityFeed');
+    const randomActivity = activities[Math.floor(Math.random() * activities.length)];
+    
+    const newItem = document.createElement('div');
+    newItem.className = 'activity-item';
+    newItem.innerHTML = `
+        <div class="activity-time">${randomActivity.time}</div>
+        <div class="activity-content">
+            <span class="activity-type ${randomActivity.type}">${randomActivity.type}</span>
+            <span class="activity-description">${randomActivity.description}</span>
+        </div>
+    `;
+    
+    // Add new item to top of feed
+    feed.insertBefore(newItem, feed.firstChild);
+    
+    // Remove last item if feed has more than 10 items
+    if (feed.children.length > 10) {
+        feed.removeChild(feed.lastChild);
+    }
+}
+</script>
+
+{% endblock %}

@@ -1,0 +1,898 @@
+{% extends "base.html" %}
+
+{% block title %}Report {{ report.log_details.Cr_ID }} - BugSeek{% endblock %}
+
+{% block content %}
+<!-- Report Header -->
+<div class="report-header">
+    <div class="report-title-section">
+        <div class="report-breadcrumb">
+            <a href="/"><i class="fas fa-home"></i> Home</a>
+            <i class="fas fa-chevron-right"></i>
+            <a href="/logs">Error Logs</a>
+            <i class="fas fa-chevron-right"></i>
+            <span>Report {{ report.log_details.Cr_ID[:8] }}...</span>
+        </div>
+        <h1 class="report-title">
+            <i class="fas fa-bug"></i>
+            Error Report
+        </h1>
+        <p class="report-subtitle">
+            Detailed analysis and insights for error log #{{ report.log_details.Cr_ID[:8] }}
+        </p>
+    </div>
+    
+    <div class="report-actions">
+        <div class="status-indicator">
+            <span class="status-badge status-{{ 'success' if report.log_details.SolutionPossible else 'danger' }}">
+                {{ '✅ Solution Available' if report.log_details.SolutionPossible else '❌ No Solution' }}
+            </span>
+        </div>
+        
+        <div class="action-buttons">
+            <button class="btn btn-outline" onclick="shareReport()">
+                <i class="fas fa-share-alt"></i> Share
+            </button>
+            <button class="btn btn-outline" onclick="exportReport()">
+                <i class="fas fa-download"></i> Export
+            </button>
+            <button class="btn btn-primary" onclick="markAsSolved()">
+                <i class="fas fa-check"></i> Mark as Solved
+            </button>
+        </div>
+    </div>
+</div>
+
+<!-- Report Details Grid -->
+<div class="report-grid">
+    <!-- Log Overview Card -->
+    <div class="card overview-card">
+        <div class="card-header">
+            <h3><i class="fas fa-info-circle"></i> Log Overview</h3>
+            <div class="card-actions">
+                <button class="btn btn-outline btn-sm" onclick="copyToClipboard('{{ report.log_details.Cr_ID }}')">Copy ID</button>
+            </div>
+        </div>
+        <div class="overview-grid">
+            <div class="overview-item">
+                <div class="overview-label">CR ID</div>
+                <div class="overview-value id-value">{{ report.log_details.Cr_ID }}</div>
+            </div>
+            <div class="overview-item">
+                <div class="overview-label">Team</div>
+                <div class="overview-value team-badge">{{ report.log_details.TeamName }}</div>
+            </div>
+            <div class="overview-item">
+                <div class="overview-label">Module</div>
+                <div class="overview-value module-badge">{{ report.log_details.Module }}</div>
+            </div>
+            <div class="overview-item">
+                <div class="overview-label">Owner</div>
+                <div class="overview-value owner-info">
+                    <i class="fas fa-user"></i> {{ report.log_details.Owner }}
+                </div>
+            </div>
+            <div class="overview-item">
+                <div class="overview-label">Log File</div>
+                <div class="overview-value file-info">
+                    <i class="fas fa-file"></i> {{ report.log_details.LogFileName }}
+                    {% if report.log_details.FileSize %}
+                        <span class="file-size">({{ "%.2f"|format(report.log_details.FileSize/1024) }} KB)</span>
+                    {% endif %}
+                </div>
+            </div>
+            <div class="overview-item">
+                <div class="overview-label">Created</div>
+                <div class="overview-value datetime-value">
+                    <i class="fas fa-calendar"></i> {{ report.log_details.CreatedAt[:19] if report.log_details.CreatedAt else 'N/A' }}
+                </div>
+            </div>
+            <div class="overview-item">
+                <div class="overview-label">Status</div>
+                <div class="overview-value">
+                    <span class="status-badge status-{{ 'success' if report.log_details.SolutionPossible else 'warning' }}">
+                        {{ 'Solvable' if report.log_details.SolutionPossible else 'Investigating' }}
+                    </span>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+</div>
+
+{% if report.log_details.LogContent %}
+<div class="card">
+    <h3>📋 Log Content</h3>
+    <div style="background: #f8f9fa; padding: 1rem; border-radius: 4px; overflow-x: auto;">
+        <pre style="margin: 0; white-space: pre-wrap;">{{ report.log_details.LogContent[:2000] }}{% if report.log_details.LogContent|length > 2000 %}
+
+... (truncated, showing first 2000 characters){% endif %}</pre>
+    </div>
+</div>
+{% endif %}
+
+{% if report.ai_summary %}
+<div class="card">
+    <h3>🤖 AI Summary</h3>
+    <div style="background: #e3f2fd; padding: 1rem; border-radius: 4px; border-left: 4px solid #2196f3;">
+        <p>{{ report.ai_summary.summary if report.ai_summary.summary else 'AI analysis in progress...' }}</p>
+    </div>
+</div>
+{% endif %}
+
+{% if report.suggested_solutions %}
+<div class="card">
+    <h3>💡 Suggested Solutions</h3>
+    {% if report.suggested_solutions.solutions %}
+        <div style="background: #f1f8e9; padding: 1rem; border-radius: 4px; border-left: 4px solid #4caf50;">
+            {% for solution in report.suggested_solutions.solutions[:3] %}
+                <div style="margin-bottom: 1rem;">
+                    <strong>Solution {{ loop.index }}:</strong>
+                    <p>{{ solution.description if solution.description else solution }}</p>
+                    {% if solution.confidence %}
+                        <small style="color: #666;">Confidence: {{ solution.confidence }}%</small>
+                    {% endif %}
+                </div>
+            {% endfor %}
+        </div>
+    {% else %}
+        <p style="color: #666; font-style: italic;">No automated solutions available yet.</p>
+    {% endif %}
+</div>
+{% endif %}
+
+{% if report.similar_logs and report.similar_logs.logs %}
+<div class="card">
+    <h3>🔗 Similar Issues</h3>
+    <div style="display: grid; gap: 0.5rem;">
+        {% for similar in report.similar_logs.logs[:3] %}
+            <div style="background: #f8f9fa; padding: 1rem; border-radius: 4px; border: 1px solid #dee2e6;">
+                <strong>Log Report #{{ similar.Cr_ID[:8] }}</strong>
+                <br>
+                <small>Team: {{ similar.TeamName }} | Module: {{ similar.Module }}</small>
+                <br>
+                <a href="/report/{{ similar.Cr_ID }}" style="font-size: 0.875rem;">View Similar Issue →</a>
+            </div>
+        {% endfor %}
+    </div>
+</div>
+{% endif %}
+
+<div style="text-align: center; margin: 2rem 0;">
+    <a href="/logs" class="btn">← Back to Logs</a>
+    <a href="/upload" class="btn btn-success">Upload New Log</a>
+</div>
+
+<style>
+/* Enhanced Report Viewer Styles */
+.report-header {
+    background: var(--gradient-primary);
+    color: white;
+    padding: 2rem;
+    border-radius: var(--radius-lg);
+    margin-bottom: 2rem;
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    flex-wrap: wrap;
+    gap: 2rem;
+}
+
+.report-title-section {
+    flex: 1;
+    min-width: 300px;
+}
+
+.report-breadcrumb {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    margin-bottom: 1rem;
+    font-size: 0.9rem;
+    color: rgba(255, 255, 255, 0.8);
+}
+
+.report-breadcrumb a {
+    color: rgba(255, 255, 255, 0.9);
+    text-decoration: none;
+    transition: color 0.3s ease;
+}
+
+.report-breadcrumb a:hover {
+    color: white;
+}
+
+.report-breadcrumb i {
+    font-size: 0.8rem;
+    opacity: 0.6;
+}
+
+.report-title {
+    font-size: 2rem;
+    font-weight: 800;
+    margin-bottom: 0.5rem;
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+}
+
+.report-subtitle {
+    color: rgba(255, 255, 255, 0.9);
+    font-size: 1rem;
+    margin: 0;
+}
+
+.report-actions {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 1rem;
+}
+
+.status-indicator {
+    margin-bottom: 0.5rem;
+}
+
+.action-buttons {
+    display: flex;
+    gap: 0.75rem;
+    flex-wrap: wrap;
+}
+
+.action-buttons .btn {
+    background: rgba(255, 255, 255, 0.1);
+    border: 1px solid rgba(255, 255, 255, 0.3);
+    color: white;
+    backdrop-filter: blur(10px);
+}
+
+.action-buttons .btn:hover {
+    background: rgba(255, 255, 255, 0.2);
+    transform: translateY(-2px);
+}
+
+.action-buttons .btn-primary {
+    background: white;
+    color: var(--primary);
+}
+
+.action-buttons .btn-primary:hover {
+    background: rgba(255, 255, 255, 0.9);
+}
+
+/* Report Grid */
+.report-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
+    gap: 2rem;
+    margin-bottom: 2rem;
+}
+
+.card-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1.5rem;
+    padding-bottom: 1rem;
+    border-bottom: 1px solid var(--gray-200);
+}
+
+.card-header h3 {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    margin: 0;
+    color: var(--gray-800);
+    font-size: 1.125rem;
+}
+
+.card-actions {
+    display: flex;
+    gap: 0.5rem;
+}
+
+/* Overview Grid */
+.overview-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 1rem;
+}
+
+.overview-item {
+    padding: 1rem;
+    background: var(--gray-50);
+    border-radius: var(--radius-md);
+    border: 1px solid var(--gray-200);
+    transition: all 0.3s ease;
+}
+
+.overview-item:hover {
+    background: var(--gray-100);
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-md);
+}
+
+.overview-label {
+    font-size: 0.8rem;
+    font-weight: 600;
+    color: var(--gray-600);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    margin-bottom: 0.5rem;
+}
+
+.overview-value {
+    font-weight: 600;
+    color: var(--gray-800);
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    flex-wrap: wrap;
+}
+
+.id-value {
+    font-family: monospace;
+    font-size: 0.85rem;
+    background: var(--gray-200);
+    padding: 0.25rem 0.5rem;
+    border-radius: 4px;
+    word-break: break-all;
+}
+
+.error-type {
+    color: var(--danger);
+    font-weight: 700;
+}
+
+.team-badge,
+.module-badge {
+    background: var(--primary);
+    color: white;
+    padding: 0.25rem 0.75rem;
+    border-radius: var(--radius-full);
+    font-size: 0.85rem;
+}
+
+.module-badge {
+    background: var(--success);
+}
+
+.owner-info,
+.file-info,
+.datetime-value {
+    font-size: 0.9rem;
+}
+
+.file-size {
+    font-size: 0.75rem;
+    color: var(--gray-500);
+}
+
+/* Description Card */
+.description-content {
+    line-height: 1.6;
+    color: var(--gray-700);
+}
+
+.description-content p {
+    margin: 0;
+}
+
+/* Log Content Enhancement */
+.log-content-enhanced {
+    background: var(--gray-900);
+    color: var(--gray-100);
+    padding: 1.5rem;
+    border-radius: var(--radius-md);
+    font-family: 'Courier New', monospace;
+    font-size: 0.85rem;
+    line-height: 1.4;
+    overflow-x: auto;
+    position: relative;
+}
+
+.log-content-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1rem;
+    padding-bottom: 0.5rem;
+    border-bottom: 1px solid var(--gray-700);
+}
+
+.log-content-actions {
+    display: flex;
+    gap: 0.5rem;
+}
+
+.log-line {
+    margin-bottom: 0.25rem;
+    padding: 0.125rem 0;
+    border-radius: 2px;
+    transition: background-color 0.2s ease;
+}
+
+.log-line:hover {
+    background: rgba(255, 255, 255, 0.05);
+}
+
+.log-line-number {
+    color: var(--gray-500);
+    margin-right: 1rem;
+    user-select: none;
+    width: 3em;
+    display: inline-block;
+}
+
+.log-timestamp {
+    color: var(--info);
+}
+
+.log-level-error {
+    color: var(--danger);
+    font-weight: bold;
+}
+
+.log-level-warning {
+    color: var(--warning);
+    font-weight: bold;
+}
+
+.log-level-info {
+    color: var(--info);
+}
+
+/* AI Analysis Enhancement */
+.ai-analysis-card {
+    border: 2px solid var(--info);
+    background: linear-gradient(135deg, rgba(59, 130, 246, 0.05), rgba(99, 102, 241, 0.05));
+}
+
+.ai-status {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-size: 0.875rem;
+    margin-bottom: 1rem;
+}
+
+.ai-status.processing {
+    color: var(--warning);
+}
+
+.ai-status.completed {
+    color: var(--success);
+}
+
+.ai-status.failed {
+    color: var(--danger);
+}
+
+.ai-progress {
+    width: 100%;
+    height: 4px;
+    background: var(--gray-200);
+    border-radius: 2px;
+    overflow: hidden;
+    margin-bottom: 1rem;
+}
+
+.ai-progress-bar {
+    height: 100%;
+    background: var(--gradient-primary);
+    transition: width 0.3s ease;
+    animation: pulse 2s infinite;
+}
+
+@keyframes pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.7; }
+}
+
+.ai-confidence {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-size: 0.875rem;
+    color: var(--gray-600);
+    margin-top: 1rem;
+}
+
+.confidence-bar {
+    flex: 1;
+    height: 4px;
+    background: var(--gray-200);
+    border-radius: 2px;
+    overflow: hidden;
+}
+
+.confidence-fill {
+    height: 100%;
+    background: var(--gradient-success);
+    transition: width 0.3s ease;
+}
+
+/* Similar Logs Enhancement */
+.similar-logs-grid {
+    display: grid;
+    gap: 1rem;
+}
+
+.similar-log-item {
+    background: var(--gray-50);
+    border: 1px solid var(--gray-200);
+    border-radius: var(--radius-md);
+    padding: 1rem;
+    transition: all 0.3s ease;
+    position: relative;
+}
+
+.similar-log-item:hover {
+    background: white;
+    box-shadow: var(--shadow-md);
+    transform: translateY(-2px);
+}
+
+.similar-log-header {
+    display: flex;
+    justify-content: between;
+    align-items: center;
+    margin-bottom: 0.5rem;
+}
+
+.similar-log-title {
+    font-weight: 600;
+    color: var(--gray-800);
+}
+
+.similarity-score {
+    font-size: 0.75rem;
+    padding: 0.25rem 0.5rem;
+    border-radius: var(--radius-full);
+    background: var(--success);
+    color: white;
+    font-weight: 600;
+}
+
+.similar-log-meta {
+    display: flex;
+    gap: 1rem;
+    font-size: 0.85rem;
+    color: var(--gray-600);
+    margin-bottom: 0.75rem;
+}
+
+/* Solutions Enhancement */
+.solutions-list {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+}
+
+.solution-item {
+    background: var(--success);
+    background: linear-gradient(135deg, rgba(16, 185, 129, 0.1), rgba(16, 185, 129, 0.05));
+    border: 1px solid rgba(16, 185, 129, 0.2);
+    border-radius: var(--radius-md);
+    padding: 1.5rem;
+    position: relative;
+}
+
+.solution-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1rem;
+}
+
+.solution-number {
+    background: var(--success);
+    color: white;
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.75rem;
+    font-weight: 600;
+}
+
+.solution-rating {
+    display: flex;
+    gap: 0.25rem;
+}
+
+.solution-star {
+    color: var(--warning);
+    cursor: pointer;
+    transition: color 0.2s ease;
+}
+
+.solution-star:hover,
+.solution-star.active {
+    color: #f59e0b;
+}
+
+.solution-content {
+    line-height: 1.6;
+    color: var(--gray-700);
+}
+
+.solution-actions {
+    display: flex;
+    gap: 0.75rem;
+    margin-top: 1rem;
+}
+
+/* Mobile Responsive */
+@media (max-width: 768px) {
+    .report-header {
+        flex-direction: column;
+        align-items: stretch;
+    }
+    
+    .report-actions {
+        align-items: stretch;
+    }
+    
+    .action-buttons {
+        justify-content: center;
+    }
+    
+    .report-grid {
+        grid-template-columns: 1fr;
+    }
+    
+    .overview-grid {
+        grid-template-columns: 1fr;
+    }
+    
+    .card-header {
+        flex-direction: column;
+        align-items: stretch;
+        gap: 1rem;
+    }
+    
+    .similar-log-meta {
+        flex-direction: column;
+        gap: 0.25rem;
+    }
+}
+</style>
+
+<script>
+// Enhanced Report Viewer JavaScript
+document.addEventListener('DOMContentLoaded', function() {
+    initializeReportViewer();
+    setupLogContentInteractions();
+    checkAIAnalysisStatus();
+    setupSolutionRatings();
+});
+
+function initializeReportViewer() {
+    // Add fade-in animations
+    const cards = document.querySelectorAll('.card');
+    cards.forEach((card, index) => {
+        card.style.opacity = '0';
+        card.style.transform = 'translateY(20px)';
+        
+        setTimeout(() => {
+            card.style.transition = 'all 0.6s ease';
+            card.style.opacity = '1';
+            card.style.transform = 'translateY(0)';
+        }, index * 100);
+    });
+}
+
+function setupLogContentInteractions() {
+    // Add line numbers and syntax highlighting to log content
+    const logContent = document.querySelector('.log-content-enhanced');
+    if (logContent) {
+        const lines = logContent.textContent.split('\n');
+        const enhancedContent = lines.map((line, index) => {
+            const lineNumber = (index + 1).toString().padStart(3, ' ');
+            let enhancedLine = line;
+            
+            // Basic syntax highlighting
+            enhancedLine = enhancedLine.replace(/\b(ERROR|FATAL)\b/g, '<span class="log-level-error">$1</span>');
+            enhancedLine = enhancedLine.replace(/\b(WARN|WARNING)\b/g, '<span class="log-level-warning">$1</span>');
+            enhancedLine = enhancedLine.replace(/\b(INFO|DEBUG)\b/g, '<span class="log-level-info">$1</span>');
+            enhancedLine = enhancedLine.replace(/\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}/g, '<span class="log-timestamp">$&</span>');
+            
+            return `<div class="log-line"><span class="log-line-number">${lineNumber}</span>${enhancedLine}</div>`;
+        }).join('');
+        
+        logContent.innerHTML = enhancedContent;
+    }
+}
+
+function checkAIAnalysisStatus() {
+    const aiStatus = document.querySelector('.ai-status');
+    if (aiStatus && aiStatus.classList.contains('processing')) {
+        // Simulate AI analysis progress
+        let progress = 0;
+        const progressBar = document.querySelector('.ai-progress-bar');
+        
+        const interval = setInterval(() => {
+            progress += Math.random() * 15;
+            if (progress >= 100) {
+                progress = 100;
+                clearInterval(interval);
+                
+                // Update status to completed
+                aiStatus.innerHTML = '<i class="fas fa-check-circle"></i> Analysis completed';
+                aiStatus.className = 'ai-status completed';
+                
+                // Simulate loading completed analysis
+                setTimeout(() => {
+                    location.reload();
+                }, 2000);
+            }
+            
+            if (progressBar) {
+                progressBar.style.width = progress + '%';
+            }
+        }, 1000);
+    }
+}
+
+function setupSolutionRatings() {
+    const solutionStars = document.querySelectorAll('.solution-star');
+    solutionStars.forEach(star => {
+        star.addEventListener('click', function() {
+            const rating = parseInt(this.dataset.rating);
+            const solutionId = this.closest('.solution-item').dataset.solutionId;
+            rateSolution(solutionId, rating);
+            
+            // Update visual state
+            const allStars = this.parentNode.querySelectorAll('.solution-star');
+            allStars.forEach((s, index) => {
+                s.classList.toggle('active', index < rating);
+            });
+        });
+    });
+}
+
+// Action Functions
+function shareReport() {
+    const url = window.location.href;
+    const title = document.querySelector('.report-title').textContent;
+    
+    if (navigator.share) {
+        navigator.share({
+            title: `BugSeek Report: ${title}`,
+            text: 'Check out this error report',
+            url: url
+        }).catch(console.error);
+    } else {
+        // Fallback to clipboard
+        copyToClipboard(url);
+        showNotification('Report link copied to clipboard!');
+    }
+}
+
+function exportReport() {
+    // Simulate report export
+    const reportId = '{{ report.log_details.Cr_ID[:8] }}';
+    const filename = `bugseek-report-${reportId}.pdf`;
+    
+    showNotification('Generating report export...', 'info');
+    
+    // Simulate export process
+    setTimeout(() => {
+        showNotification(`Report exported as ${filename}`, 'success');
+    }, 2000);
+}
+
+function markAsSolved() {
+    const reportId = '{{ report.log_details.Cr_ID }}';
+    
+    if (confirm('Mark this error as solved? This action will update the error status.')) {
+        // Simulate API call
+        showNotification('Updating error status...', 'info');
+        
+        setTimeout(() => {
+            showNotification('Error marked as solved!', 'success');
+            
+            // Update UI
+            const statusBadges = document.querySelectorAll('.status-badge');
+            statusBadges.forEach(badge => {
+                badge.className = 'status-badge status-success';
+                badge.innerHTML = '✅ Solved';
+            });
+        }, 1000);
+    }
+}
+
+function copyToClipboard(text) {
+    if (navigator.clipboard) {
+        navigator.clipboard.writeText(text).then(() => {
+            showNotification('Copied to clipboard!');
+        }).catch(() => {
+            fallbackCopyTextToClipboard(text);
+        });
+    } else {
+        fallbackCopyTextToClipboard(text);
+    }
+}
+
+function fallbackCopyTextToClipboard(text) {
+    const textArea = document.createElement('textarea');
+    textArea.value = text;
+    document.body.appendChild(textArea);
+    textArea.focus();
+    textArea.select();
+    
+    try {
+        document.execCommand('copy');
+        showNotification('Copied to clipboard!');
+    } catch (err) {
+        console.error('Fallback copy failed', err);
+        showNotification('Failed to copy to clipboard', 'error');
+    }
+    
+    document.body.removeChild(textArea);
+}
+
+
+function rateSolution(solutionId, rating) {
+    // Simulate rating submission
+    console.log(`Rating solution ${solutionId} with ${rating} stars`);
+    showNotification(`Rated solution ${rating} stars`, 'success');
+}
+
+function showNotification(message, type = 'success') {
+    // Create notification element
+    const notification = document.createElement('div');
+    notification.className = `notification notification-${type}`;
+    notification.innerHTML = `
+        <i class="fas fa-${type === 'success' ? 'check' : type === 'error' ? 'times' : 'info'}-circle"></i>
+        ${message}
+    `;
+    
+    // Add styles
+    notification.style.cssText = `
+        position: fixed;
+        top: 20px;
+        right: 20px;
+        padding: 1rem 1.5rem;
+        background: ${type === 'success' ? '#10b981' : type === 'error' ? '#ef4444' : '#3b82f6'};
+        color: white;
+        border-radius: 8px;
+        z-index: 10000;
+        opacity: 0;
+        transform: translateX(100%);
+        transition: all 0.3s ease;
+        font-weight: 500;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+    `;
+    
+    document.body.appendChild(notification);
+    
+    // Animate in
+    setTimeout(() => {
+        notification.style.opacity = '1';
+        notification.style.transform = 'translateX(0)';
+    }, 100);
+    
+    // Auto remove
+    setTimeout(() => {
+        notification.style.opacity = '0';
+        notification.style.transform = 'translateX(100%)';
+        setTimeout(() => {
+            document.body.removeChild(notification);
+        }, 300);
+    }, 3000);
+}
+
+// Auto-refresh AI data if analysis is in progress
+if (document.querySelector('.ai-status.processing')) {
+    setTimeout(() => {
+        if (document.querySelector('.ai-status.processing')) {
+            location.reload();
+        }
+    }, 30000);
+}
+</script>
+{% endblock %}
