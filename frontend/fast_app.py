@@ -172,7 +172,7 @@ def search_page():
         if status_code == 200 and result.get('success'):
             results = result.get('data', {}).get('logs', [])
     
-    return render_template('search.html', results=results, search_params=search_params)
+    return render_template('search.html', results=results, search_params=search_params, api_base_url=API_BASE_URL)
 
 @app.route('/analytics')
 def analytics_page():

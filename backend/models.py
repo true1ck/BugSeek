@@ -2,7 +2,7 @@ from datetime import datetime, timedelta
 import uuid
 import json
 from flask_sqlalchemy import SQLAlchemy
-from sqlalchemy import Index, ForeignKey
+from sqlalchemy import Index, ForeignKey, text
 from sqlalchemy.orm import relationship
 
 db = SQLAlchemy()
@@ -234,6 +234,9 @@ class AIAnalysisResult(db.Model):
     ErrorPattern = db.Column(db.String(100), nullable=True)  # Detected error pattern
     ErrorCategory = db.Column(db.String(50), nullable=True)  # Categorized error type
     
+    # Detected errors with line numbers (JSON array of {line, text, severity})
+    DetectedIssues = db.Column(db.Text, nullable=True)
+    
     # Processing Status
     Status = db.Column(db.String(20), default='pending', nullable=False)  # pending, processing, completed, failed
     ProcessingStartTime = db.Column(db.DateTime, nullable=True)
@@ -279,6 +282,7 @@ class AIAnalysisResult(db.Model):
             'SolutionCategories': json.loads(self.SolutionCategories) if self.SolutionCategories else [],
             'ErrorPattern': self.ErrorPattern,
             'ErrorCategory': self.ErrorCategory,
+            'DetectedIssues': json.loads(self.DetectedIssues) if self.DetectedIssues else [],
             'Status': self.Status,
             'ProcessingStartTime': self.ProcessingStartTime.isoformat() if self.ProcessingStartTime else None,
             'ProcessingEndTime': self.ProcessingEndTime.isoformat() if self.ProcessingEndTime else None,
@@ -479,11 +483,53 @@ class SimilarLogMatch(db.Model):
         return f'<SimilarLogMatch {self.Match_ID}: {self.SimilarityScore:.2f} ({self.MatchingMethod})>'
 
 def create_tables(app):
-    """Create all database tables."""
+    """Create all database tables and ensure new columns exist."""
     with app.app_context():
         db.create_all()
+        # Ensure new column DetectedIssues exists for AIAnalysisResult (SQLite-safe)
+        try:
+            engine_name = db.engine.dialect.name
+            if engine_name == 'sqlite':
+                rows = db.session.execute(text("PRAGMA table_info(ai_analysis_results)")).fetchall()
+                cols = [r[1] for r in rows]
+                if 'DetectedIssues' not in cols:
+                    db.session.execute(text("ALTER TABLE ai_analysis_results ADD COLUMN DetectedIssues TEXT"))
+                    db.session.commit()
+        except Exception as e:
+            # Non-fatal; log if needed
+            print(f"Warning: could not ensure DetectedIssues column: {e}")
         
 def init_db(app):
     """Initialize database with Flask app."""
     db.init_app(app)
     return db
+
+class UserSolution(db.Model):
+    """User-submitted solutions for an error log."""
+    __tablename__ = 'user_solutions'
+
+    Solution_ID = db.Column(db.String(36), primary_key=True, default=lambda: str(uuid.uuid4()))
+    Cr_ID = db.Column(db.String(36), ForeignKey('error_logs.Cr_ID'), nullable=False)
+    Author = db.Column(db.String(100), nullable=True)  # user identifier or email
+    Content = db.Column(db.Text, nullable=False)
+    IsOfficial = db.Column(db.Boolean, default=False, nullable=False)
+    Upvotes = db.Column(db.Integer, default=0, nullable=False)
+    CreatedAt = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
+    UpdatedAt = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    __table_args__ = (
+        Index('idx_solution_cr_id', 'Cr_ID'),
+        Index('idx_solution_created_at', 'CreatedAt'),
+    )
+
+    def to_dict(self):
+        return {
+            'Solution_ID': self.Solution_ID,
+            'Cr_ID': self.Cr_ID,
+            'Author': self.Author,
+            'Content': self.Content,
+            'IsOfficial': self.IsOfficial,
+            'Upvotes': self.Upvotes,
+            'CreatedAt': self.CreatedAt.isoformat() if self.CreatedAt else None,
+            'UpdatedAt': self.UpdatedAt.isoformat() if self.UpdatedAt else None,
+        }

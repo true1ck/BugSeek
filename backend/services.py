@@ -480,6 +480,32 @@ class NLPService:
     """Enhanced NLP service with real text processing capabilities."""
     
     @staticmethod
+    def extract_error_lines(text):
+        """Extract error-like lines with line numbers. Returns list of dicts."""
+        try:
+            lines = text.splitlines()
+            results = []
+            keywords = [
+                ('critical', 'critical'), ('fatal', 'critical'),
+                ('error', 'high'), ('exception', 'high'),
+                ('failed', 'high'), ('fail', 'high'), ('timeout', 'medium'),
+                ('warn', 'low'), ('warning', 'low')
+            ]
+            for i, ln in enumerate(lines, start=1):
+                low = ln.lower()
+                sev = None
+                for kw, s in keywords:
+                    if kw in low:
+                        sev = s
+                        break
+                if sev:
+                    snippet = ln if len(ln) <= 1000 else ln[:1000]
+                    results.append({'line': i, 'text': snippet, 'severity': sev})
+            return {'success': True, 'issues': results}
+        except Exception as e:
+            return {'success': False, 'issues': [], 'error': str(e)}
+    
+    @staticmethod
     def generate_embeddings(text):
         """Generate text embeddings using TF-IDF or similar approach."""
         try:
@@ -532,37 +558,30 @@ class NLPService:
     
     @staticmethod
     def find_similar_logs(cr_id, embeddings=None, threshold=0.7):
-        """Find similar logs using embeddings or text similarity."""
+        """Find similar logs using embeddings or text similarity.
+        Also persists matches above threshold to SimilarLogMatch table.
+        """
         try:
-            from backend.models import ErrorLog, SimilarLogMatch
+            from backend.models import ErrorLog, SimilarLogMatch, db
             from sqlalchemy import and_, or_
             import json
             
             # Get all logs except the current one
             logs = ErrorLog.query.filter(ErrorLog.Cr_ID != cr_id).limit(100).all()
             
+            current_log = ErrorLog.query.filter_by(Cr_ID=cr_id).first()
+            
             similar_logs = []
             for log in logs:
-                # Calculate similarity (simplified for now)
-                # In production, use cosine similarity with embeddings
                 similarity_score = 0.0
                 
-                # Simple text-based similarity check
-                current_log = ErrorLog.query.filter_by(Cr_ID=cr_id).first()
                 if current_log:
-                    # Check for matching error names
                     if log.ErrorName == current_log.ErrorName:
                         similarity_score += 0.3
-                    
-                    # Check for matching modules
                     if log.Module == current_log.Module:
                         similarity_score += 0.2
-                    
-                    # Check for matching teams
                     if log.TeamName == current_log.TeamName:
                         similarity_score += 0.1
-                    
-                    # Check description similarity (simple word overlap)
                     if log.Description and current_log.Description:
                         desc_words = set(log.Description.lower().split())
                         current_words = set(current_log.Description.lower().split())
@@ -571,22 +590,35 @@ class NLPService:
                             similarity_score += overlap * 0.4
                 
                 if similarity_score >= threshold:
-                    similar_logs.append({
+                    item = {
                         'Cr_ID': log.Cr_ID,
                         'ErrorName': log.ErrorName,
                         'Module': log.Module,
                         'TeamName': log.TeamName,
-                        'Description': log.Description[:200],
+                        'Description': log.Description[:200] if log.Description else '',
                         'SimilarityScore': round(similarity_score, 2),
                         'CreatedAt': log.CreatedAt.isoformat() if log.CreatedAt else None
-                    })
+                    }
+                    similar_logs.append(item)
+                    # Persist match best-effort
+                    try:
+                        match = SimilarLogMatch(
+                            Source_Cr_ID=cr_id,
+                            Target_Cr_ID=log.Cr_ID,
+                            SimilarityScore=similarity_score,
+                            MatchingMethod='heuristic',
+                            ConfidenceLevel='high' if similarity_score > 0.8 else ('medium' if similarity_score > 0.6 else 'low')
+                        )
+                        db.session.add(match)
+                        db.session.commit()
+                    except Exception:
+                        db.session.rollback()
             
-            # Sort by similarity score
             similar_logs.sort(key=lambda x: x['SimilarityScore'], reverse=True)
             
             return {
                 'success': True,
-                'similar_logs': similar_logs[:10],  # Return top 10
+                'similar_logs': similar_logs[:10],
                 'total_found': len(similar_logs),
                 'threshold_used': threshold,
                 'message': f'Found {len(similar_logs)} similar logs'

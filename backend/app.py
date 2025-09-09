@@ -2,7 +2,7 @@ from flask import Flask, request, jsonify, redirect, send_file, abort, current_a
 from flask_cors import CORS
 from flask_restx import Api, Resource, fields, reqparse
 from werkzeug.datastructures import FileStorage
-from sqlalchemy import text
+from sqlalchemy import text, func
 import os
 import sys
 
@@ -10,7 +10,7 @@ import sys
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from config.settings import config
-from backend.models import db, create_tables, AIAnalysisResult, OpenAIStatus, SimilarLogMatch
+from backend.models import db, create_tables, AIAnalysisResult, OpenAIStatus, SimilarLogMatch, ErrorLog, UserSolution
 from backend.services import ErrorLogService, FileService, NLPService, GenAIService
 try:
     from backend.ai_services import OpenAIService, AIAnalysisService
@@ -319,10 +319,30 @@ def create_app(config_name='development'):
             except Exception as e:
                 return {'success': False, 'message': str(e)}, 500
     
+    # New: Distinct options for selectors (teams/modules/owners)
+    @logs_ns.route('/options/<string:kind>')
+    class LogOptions(Resource):
+        @logs_ns.doc('get_log_options', description='Get distinct values for selectors', params={'kind': 'teams | modules | owners'})
+        def get(self, kind):
+            try:
+                mapping = {
+                    'teams': ErrorLog.TeamName,
+                    'modules': ErrorLog.Module,
+                    'owners': ErrorLog.Owner,
+                }
+                column = mapping.get(kind.lower())
+                if column is None:
+                    return {'success': False, 'message': 'Invalid options kind'}, 400
+                rows = db.session.query(column).distinct().order_by(column).all()
+                values = [r[0] for r in rows if r[0]]
+                return {'success': True, 'data': values}, 200
+            except Exception as e:
+                return {'success': False, 'message': str(e)}, 500
+    
     @reports_ns.route('/<string:cr_id>')
     class LogReport(Resource):
         @reports_ns.doc('get_report',
-                       description='Get comprehensive report for a specific error log including AI analysis, suggested solutions, and similar logs',
+                       description='Get comprehensive report for a specific error log including AI analysis, suggested solutions, detected error lines, similarity scores, and user solutions',
                        params={'cr_id': 'Unique Change Request ID for the error log'})
         @reports_ns.response(200, 'Report retrieved successfully', success_response_model)
         @reports_ns.response(404, 'Error log not found', error_response_model)
@@ -337,13 +357,13 @@ def create_app(config_name='development'):
                     
                     # Get AI analysis if available
                     ai_analysis = None
-                    if AI_SERVICES_AVAILABLE:
-                        try:
-                            analysis = AIAnalysisResult.query.filter_by(Cr_ID=cr_id).first()
-                            if analysis:
-                                ai_analysis = analysis.to_dict()
-                        except Exception as e:
-                            current_app.logger.error(f"Failed to get AI analysis: {e}")
+                    analysis_row = None
+                    try:
+                        analysis_row = AIAnalysisResult.query.filter_by(Cr_ID=cr_id).first()
+                        if analysis_row:
+                            ai_analysis = analysis_row.to_dict()
+                    except Exception as e:
+                        current_app.logger.error(f"Failed to get AI analysis: {e}")
                     
                     # Generate or retrieve AI summary
                     if ai_analysis and ai_analysis.get('Summary'):
@@ -355,7 +375,6 @@ def create_app(config_name='development'):
                             'severity': ai_analysis.get('EstimatedSeverity', 'medium')
                         }
                     else:
-                        # Generate new summary
                         summary_result = GenAIService.generate_summary(
                             error_log.get('LogContentPreview', ''),
                             error_log
@@ -371,18 +390,72 @@ def create_app(config_name='development'):
                     else:
                         solutions_result = GenAIService.suggest_solutions(error_log, summary_result)
                     
+                    # Persist AI summary and suggestions best-effort
+                    try:
+                        import json as _json
+                        if not analysis_row:
+                            analysis_row = AIAnalysisResult(Cr_ID=cr_id, AnalysisType='summary', Status='completed')
+                            db.session.add(analysis_row)
+                        if summary_result.get('success'):
+                            analysis_row.Summary = summary_result.get('summary')
+                            analysis_row.EstimatedSeverity = summary_result.get('severity')
+                            kws = summary_result.get('keywords') or []
+                            analysis_row.Keywords = _json.dumps(kws) if kws else None
+                        if solutions_result.get('success') and solutions_result.get('solutions') is not None:
+                            # Store array
+                            sols = solutions_result.get('solutions')
+                            analysis_row.SuggestedSolutions = _json.dumps(sols)
+                        db.session.commit()
+                    except Exception as pe:
+                        db.session.rollback()
+                        current_app.logger.warning(f"Failed to persist AI summary/solutions: {pe}")
+                    
+                    # Detect error lines with line numbers (NLP) and persist
+                    detected = []
+                    try:
+                        # Load full content
+                        file_result = FileService.get_file_by_cr_id(cr_id)
+                        content = ''
+                        if file_result['success']:
+                            read_res = FileService.read_file_content(file_result['file_record'].StoredPath)
+                            if read_res['success']:
+                                content = read_res['content']
+                        if not content:
+                            content = error_log.get('LogContentPreview', '') or ''
+                        det = NLPService.extract_error_lines(content)
+                        if det['success']:
+                            detected = det['issues']
+                            # Persist to AIAnalysisResult
+                            try:
+                                import json as _json
+                                if not analysis_row:
+                                    analysis_row = AIAnalysisResult(Cr_ID=cr_id, AnalysisType='summary', Status='completed')
+                                    db.session.add(analysis_row)
+                                analysis_row.DetectedIssues = _json.dumps(detected)
+                                db.session.commit()
+                            except Exception as pe:
+                                db.session.rollback()
+                                current_app.logger.warning(f"Failed to persist DetectedIssues: {pe}")
+                    except Exception as de:
+                        current_app.logger.warning(f"Detection failed: {de}")
+                    
                     # Find similar logs
                     similar_result = NLPService.find_similar_logs(
                         cr_id,
                         error_log.get('Embedding', [])
                     )
                     
+                    # Fetch user solutions
+                    user_solutions = [s.to_dict() for s in UserSolution.query.filter_by(Cr_ID=cr_id).order_by(UserSolution.CreatedAt.desc()).all()]
+                    
                     # Prepare comprehensive report
                     report = {
                         'log_details': error_log,
-                        'ai_summary': summary_result if summary_result['success'] else None,
-                        'suggested_solutions': solutions_result if solutions_result['success'] else None,
-                        'similar_logs': similar_result if similar_result['success'] else None
+                        'ai_summary': summary_result if summary_result.get('success') else None,
+                        'suggested_solutions': solutions_result if solutions_result.get('success') else None,
+                        'detected_errors': detected,
+                        'similar_logs': similar_result if similar_result.get('success') else None,
+                        'user_solutions': user_solutions
                     }
                     
                     return {'success': True, 'data': report}, 200
@@ -470,6 +543,33 @@ def create_app(config_name='development'):
             except Exception as e:
                 return {'success': False, 'message': str(e)}, 500
     
+    @logs_ns.route('/<string:cr_id>/solutions')
+    class LogSolutions(Resource):
+        @logs_ns.doc('list_user_solutions', description='Get user-submitted solutions for an error log')
+        def get(self, cr_id):
+            try:
+                items = [s.to_dict() for s in UserSolution.query.filter_by(Cr_ID=cr_id).order_by(UserSolution.CreatedAt.desc()).all()]
+                return {'success': True, 'data': items}, 200
+            except Exception as e:
+                return {'success': False, 'message': str(e)}, 500
+        
+        @logs_ns.doc('create_user_solution', description='Submit a user solution for an error log')
+        def post(self, cr_id):
+            try:
+                data = request.get_json(force=True) or {}
+                content = (data.get('content') or '').strip()
+                author = (data.get('author') or '').strip() or None
+                is_official = bool(data.get('is_official', False))
+                if not content:
+                    return {'success': False, 'message': 'Content is required'}, 400
+                item = UserSolution(Cr_ID=cr_id, Content=content, Author=author, IsOfficial=is_official)
+                db.session.add(item)
+                db.session.commit()
+                return {'success': True, 'data': item.to_dict()}, 201
+            except Exception as e:
+                db.session.rollback()
+                return {'success': False, 'message': str(e)}, 500
+
     @health_ns.route('/')
     class HealthCheck(Resource):
         @health_ns.doc('health_check',

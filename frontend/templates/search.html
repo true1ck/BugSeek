@@ -43,26 +43,16 @@
                 <div class="form-row">
                     <div class="form-group">
                         <label for="team">Team Name</label>
-                        <select id="team" name="team" class="form-control">
+                        <input type="text" id="teamSearch" class="form-control" placeholder="Search teams...">
+                        <select id="team" name="team" class="form-control" style="margin-top:0.5rem">
                             <option value="">All Teams</option>
-                            <option value="Frontend" {{ 'selected' if request.args.get('team') == 'Frontend' }}>Frontend</option>
-                            <option value="Backend" {{ 'selected' if request.args.get('team') == 'Backend' }}>Backend</option>
-                            <option value="Mobile" {{ 'selected' if request.args.get('team') == 'Mobile' }}>Mobile</option>
-                            <option value="DevOps" {{ 'selected' if request.args.get('team') == 'DevOps' }}>DevOps</option>
-                            <option value="QA" {{ 'selected' if request.args.get('team') == 'QA' }}>QA</option>
-                            <option value="Data Science" {{ 'selected' if request.args.get('team') == 'Data Science' }}>Data Science</option>
                         </select>
                     </div>
                     <div class="form-group">
                         <label for="module">Module</label>
-                        <select id="module" name="module" class="form-control">
+                        <input type="text" id="moduleSearch" class="form-control" placeholder="Search modules...">
+                        <select id="module" name="module" class="form-control" style="margin-top:0.5rem">
                             <option value="">All Modules</option>
-                            <option value="Authentication" {{ 'selected' if request.args.get('module') == 'Authentication' }}>Authentication</option>
-                            <option value="Payment" {{ 'selected' if request.args.get('module') == 'Payment' }}>Payment</option>
-                            <option value="User Management" {{ 'selected' if request.args.get('module') == 'User Management' }}>User Management</option>
-                            <option value="API Gateway" {{ 'selected' if request.args.get('module') == 'API Gateway' }}>API Gateway</option>
-                            <option value="Database" {{ 'selected' if request.args.get('module') == 'Database' }}>Database</option>
-                            <option value="Notification" {{ 'selected' if request.args.get('module') == 'Notification' }}>Notification</option>
                         </select>
                     </div>
                 </div>
@@ -216,6 +206,211 @@
     </div>
 </div>
 
+<script>
+(function(){
+  const API_BASE = {{ ('"' ~ api_base_url ~ '"') | safe }};
+  const cache = { teams: [], modules: [] };
+  const preSelectedTeam = {{ ('"' ~ (request.args.get('team','')) ~ '"') | safe }};
+  const preSelectedModule = {{ ('"' ~ (request.args.get('module','')) ~ '"') | safe }};
+
+  function debounce(fn, wait){ let t; return (...a)=>{ clearTimeout(t); t=setTimeout(()=>fn(...a), wait); } }
+
+  function renderOptions(selectEl, items){
+    const current = selectEl.value;
+    selectEl.innerHTML = '';
+    const allOpt = document.createElement('option');
+    allOpt.value = ''; allOpt.textContent = selectEl.id === 'team' ? 'All Teams' : 'All Modules';
+    selectEl.appendChild(allOpt);
+    items.forEach(v=>{ const o=document.createElement('option'); o.value=v; o.textContent=v; selectEl.appendChild(o); });
+    // restore selection if still present
+    if(items.includes(current)) selectEl.value = current;
+  }
+
+  async function fetchOptions(kind){
+    try{
+      const res = await fetch(`${API_BASE}/api/v1/logs/options/${kind}`);
+      const data = await res.json();
+      if(data && data.success && Array.isArray(data.data)){
+        const key = kind === 'teams' ? 'teams' : 'modules';
+        const list = data.data;
+        if(JSON.stringify(cache[key]) !== JSON.stringify(list)){
+          cache[key] = list;
+          const sel = document.getElementById(kind === 'teams' ? 'team' : 'module');
+          renderOptions(sel, list);
+          // apply pre-selected value from URL if present
+          const pre = kind === 'teams' ? preSelectedTeam : preSelectedModule;
+          if (pre && list.includes(pre)) sel.value = pre;
+        }
+      }
+    }catch(e){ /* ignore network errors in UI */ }
+  }
+
+  function attachSearch(inputId, selectId, sourceKey){
+    const input = document.getElementById(inputId);
+    const select = document.getElementById(selectId);
+    input.addEventListener('input', debounce(()=>{
+      const q = input.value.toLowerCase();
+      const filtered = cache[sourceKey].filter(v => v.toLowerCase().includes(q));
+      renderOptions(select, filtered);
+    }, 200));
+  }
+
+  // Initial population
+  fetchOptions('teams');
+  fetchOptions('modules');
+  // Poll every 15s for updates
+  setInterval(()=>{ fetchOptions('teams'); fetchOptions('modules'); }, 15000);
+
+  attachSearch('teamSearch','team','teams');
+  attachSearch('moduleSearch','module','modules');
+})();
+</script>
+
+<script>
+(function(){
+  const API_BASE = {{ ('"' ~ api_base_url ~ '"') | safe }};
+  const resultsEl = document.getElementById('resultsContainer');
+  const serverEl = document.getElementById('serverResults');
+  if (!resultsEl) return;
+  if (!serverEl) return;
+  let results = [];
+  try { results = JSON.parse(serverEl.textContent); } catch(_) { results = []; }
+  serverEl.style.display = 'none';
+
+  function el(html){ const d=document.createElement('div'); d.innerHTML=html.trim(); return d.firstElementChild; }
+
+  function cardTemplate(log){
+    const created = log.CreatedAt ? new Date(log.CreatedAt).toLocaleString() : 'N/A';
+    return `
+      <div class="result-card" id="card-${log.Cr_ID}">
+        <div class="result-card-header">
+          <div class="result-card-title">${escapeHtml(log.ErrorName || 'Error')}</div>
+          <div class="result-card-actions">
+            <a class="btn btn-outline btn-sm" href="${API_BASE}/api/v1/logs/${log.Cr_ID}/file" target="_blank">
+              <i class="fas fa-download"></i> Download
+            </a>
+            <button class="btn btn-primary btn-sm" data-action="analyze" data-id="${log.Cr_ID}">
+              <i class="fas fa-brain"></i> Analyze
+            </button>
+          </div>
+        </div>
+        <div class="result-card-meta">
+          <span><i class="fas fa-users"></i> ${escapeHtml(log.TeamName || '-')}</span>
+          <span><i class="fas fa-cube"></i> ${escapeHtml(log.Module || '-')}</span>
+          <span><i class="fas fa-user"></i> ${escapeHtml(log.Owner || '-')}</span>
+          <span><i class="fas fa-calendar"></i> ${created}</span>
+        </div>
+        <div class="analysis" id="analysis-${log.Cr_ID}" style="display:none"></div>
+      </div>
+    `;
+  }
+
+  function render(){
+    const list = document.createElement('div');
+    list.className = 'results-grid';
+    results.forEach(log => list.appendChild(el(cardTemplate(log))));
+    resultsEl.innerHTML = '';
+    resultsEl.appendChild(list);
+  }
+
+  async function loadReport(crId){
+    const target = document.getElementById(`analysis-${crId}`);
+    target.style.display = 'block';
+    target.innerHTML = '<div class="loading">Loading analysis...</div>';
+    try{
+      const res = await fetch(`${API_BASE}/api/v1/reports/${crId}`);
+      const data = await res.json();
+      if(!data.success){ target.innerHTML = '<div class="alert alert-error">Failed to load analysis</div>'; return; }
+      const r = data.data;
+      const ai = r.ai_summary || {};
+      const det = r.detected_errors || [];
+      const sim = (r.similar_logs && r.similar_logs.similar_logs) ? r.similar_logs.similar_logs : [];
+      const aiSols = (r.suggested_solutions && r.suggested_solutions.solutions) ? r.suggested_solutions.solutions : [];
+      const userSols = r.user_solutions || [];
+      target.innerHTML = `
+        <div class="analysis-sections">
+          <div class="analysis-section">
+            <h4><i class="fas fa-brain"></i> AI Summary</h4>
+            <div>${escapeHtml(ai.summary || 'No summary')}</div>
+          </div>
+          <div class="analysis-section">
+            <h4><i class="fas fa-list-ul"></i> Detected Errors (with line numbers)</h4>
+            ${det.length ? `<ul class="error-lines">${det.map(x=>`<li><code>Line ${x.line}</code> - ${escapeHtml(x.text)} <span class="badge badge-${x.severity}">${x.severity}</span></li>`).join('')}</ul>` : '<div>No error lines detected.</div>'}
+          </div>
+          <div class="analysis-section">
+            <h4><i class="fas fa-link"></i> Similar Logs</h4>
+            ${sim.length ? `<ul class="similar-list">${sim.slice(0,5).map(s=>`<li><a href="/report/${s.Cr_ID}" target="_blank">${escapeHtml(s.ErrorName || '')}</a> <span class="score">${(s.SimilarityScore ?? s.score ?? 0).toFixed ? (s.SimilarityScore ?? s.score).toFixed(2) : s.SimilarityScore ?? s.score}</span></li>`).join('')}</ul>` : '<div>No similar logs found.</div>'}
+          </div>
+          <div class="analysis-section">
+            <h4><i class="fas fa-lightbulb"></i> AI Suggested Solutions</h4>
+            ${aiSols.length ? `<ol class="solutions">${aiSols.map(s=>`<li>${escapeHtml(s.get ? s.get('description') : (s.description || String(s)))}</li>`).join('')}</ol>` : '<div>No AI suggestions yet.</div>'}
+          </div>
+          <div class="analysis-section">
+            <h4><i class="fas fa-users-cog"></i> User Solutions</h4>
+            <div id="user-solutions-${crId}">
+              ${userSols.length ? `<ol class="solutions">${userSols.map(u=>`<li><strong>${escapeHtml(u.Author || 'User')}</strong>: ${escapeHtml(u.Content)}</li>`).join('')}</ol>` : '<div>No user solutions yet.</div>'}
+            </div>
+            <div class="solution-form">
+              <textarea id="solution-text-${crId}" class="form-control" placeholder="Share your solution..." rows="3"></textarea>
+              <div style="margin-top:0.5rem; display:flex; gap:0.5rem;">
+                <input id="solution-author-${crId}" class="form-control" style="max-width:240px" placeholder="Your name or email (optional)">
+                <button class="btn btn-success btn-sm" data-action="submit-solution" data-id="${crId}"><i class="fas fa-paper-plane"></i> Submit</button>
+              </div>
+            </div>
+          </div>
+        </div>`;
+    }catch(e){
+      target.innerHTML = '<div class="alert alert-error">Error loading analysis.</div>';
+    }
+  }
+
+  async function submitSolution(crId){
+    const textEl = document.getElementById(`solution-text-${crId}`);
+    const authorEl = document.getElementById(`solution-author-${crId}`);
+    const content = (textEl.value || '').trim();
+    if(!content){ alert('Please enter a solution.'); return; }
+    try{
+      const res = await fetch(`${API_BASE}/api/v1/logs/${crId}/solutions`,{
+        method:'POST',
+        headers:{'Content-Type':'application/json'},
+        body: JSON.stringify({ content, author: authorEl.value || '' })
+      });
+      const data = await res.json();
+      if(data.success){
+        // Refresh list
+        const listRes = await fetch(`${API_BASE}/api/v1/logs/${crId}/solutions`);
+        const listData = await listRes.json();
+        const wrap = document.getElementById(`user-solutions-${crId}`);
+        const items = (listData.data||[]).map(u=>`<li><strong>${escapeHtml(u.Author || 'User')}</strong>: ${escapeHtml(u.Content)}</li>`).join('');
+        wrap.innerHTML = items ? `<ol class="solutions">${items}</ol>` : '<div>No user solutions yet.</div>';
+        textEl.value = '';
+      } else {
+        alert('Failed to submit solution');
+      }
+    }catch(e){ alert('Error submitting solution'); }
+  }
+
+  function escapeHtml(s){
+    return (String(s)).replace(/[&<>"']/g, c=>({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;','\'':'&#39;' }[c]));
+  }
+
+  // Global clicks for dynamic buttons
+  document.addEventListener('click', (e)=>{
+    const btn = e.target.closest('button');
+    if(!btn) return;
+    if(btn.dataset.action === 'analyze'){
+      loadReport(btn.dataset.id);
+    }
+    if(btn.dataset.action === 'submit-solution'){
+      submitSolution(btn.dataset.id);
+    }
+  });
+
+  // Render initial
+  render();
+})();
+</script>
+
 <style>
 /* Advanced Search Styles */
 .search-card {
@@ -357,6 +552,32 @@
     gap: 1rem;
 }
 
+.result-card-meta {
+    display: flex;
+    gap: 1rem;
+    color: var(--gray-600);
+    font-size: 0.9rem;
+    margin-bottom: 0.75rem;
+}
+
+.result-card-actions .btn-sm { padding: 0.35rem 0.75rem; }
+
+.analysis-sections { display: grid; grid-template-columns: 1fr; gap: 1rem; }
+.analysis-section h4 { margin-bottom: 0.5rem; color: var(--gray-800); }
+.error-lines { list-style: none; padding-left: 0; }
+.error-lines li { padding: 0.25rem 0; border-bottom: 1px dashed #e5e7eb; }
+.error-lines code { background: #f3f4f6; padding: 2px 6px; border-radius: 4px; }
+.badge { display: inline-block; padding: 2px 8px; border-radius: 9999px; font-size: 0.75rem; margin-left: 6px; }
+.badge-critical { background: #fee2e2; color: #b91c1c; }
+.badge-high { background: #fee2e2; color: #dc2626; }
+.badge-medium { background: #fef3c7; color: #b45309; }
+.badge-low { background: #ecfeff; color: #0e7490; }
+.similar-list { list-style: none; padding-left: 0; }
+.similar-list li { padding: 2px 0; }
+.similar-list .score { color: var(--gray-600); margin-left: 8px; }
+.solutions { margin-left: 1rem; }
+.solution-form textarea { width: 100%; }
+
 .sort-options {
     display: flex;
     align-items: center;
@@ -403,6 +624,7 @@
     transform: translateY(-2px);
     box-shadow: var(--shadow-lg);
     border-color: var(--primary);
+    background: linear-gradient(0deg, rgba(99,102,241,0.05), rgba(255,255,255,1) 30%);
 }
 
 .result-card-header {
