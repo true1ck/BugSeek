@@ -123,6 +123,13 @@
                     </div>
                 </div>
                 <div class="health-item">
+                    <div class="health-label">OpenAI Status</div>
+                    <div id="openai-status" class="loading">
+                        <i class="fas fa-spinner fa-spin"></i>
+                        Checking...
+                    </div>
+                </div>
+                <div class="health-item">
                     <div class="health-label">Response Time</div>
                     <div class="health-status good">
                         <i class="fas fa-clock"></i>
@@ -414,6 +421,25 @@ document.addEventListener('DOMContentLoaded', function() {
             statusEl.className = 'health-status offline';
             
             document.getElementById('response-time').textContent = 'N/A';
+        });
+    
+    // Check OpenAI connection status
+    fetch('/api/v1/openai/status')
+        .then(response => response.json())
+        .then(data => {
+            const openaiStatusEl = document.getElementById('openai-status');
+            if (data.connected) {
+                openaiStatusEl.innerHTML = '<i class="fas fa-check-circle"></i> Connected';
+                openaiStatusEl.className = 'health-status online';
+            } else {
+                openaiStatusEl.innerHTML = '<i class="fas fa-exclamation-triangle"></i> Disconnected';
+                openaiStatusEl.className = 'health-status offline';
+            }
+        })
+        .catch(error => {
+            const openaiStatusEl = document.getElementById('openai-status');
+            openaiStatusEl.innerHTML = '<i class="fas fa-times-circle"></i> Not Available';
+            openaiStatusEl.className = 'health-status offline';
         });
     
     // Animate numbers

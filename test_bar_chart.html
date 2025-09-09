@@ -1,0 +1,277 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Error Types Chart - Bar/Pie Toggle Demo</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 50px auto;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        .chart-container {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .chart-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+        .chart-controls {
+            display: flex;
+            gap: 10px;
+        }
+        .chart-controls button {
+            padding: 8px 16px;
+            border: 1px solid #ddd;
+            background: white;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+        .chart-controls button:hover {
+            background: #f0f0f0;
+        }
+        .chart-controls button.active {
+            background: #6366f1;
+            color: white;
+            border-color: #6366f1;
+        }
+        #errorTypesChart {
+            max-height: 400px;
+        }
+        .info-box {
+            background: #e3f2fd;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+        }
+        .info-box h3 {
+            margin-top: 0;
+            color: #1976d2;
+        }
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 15px;
+            margin-top: 20px;
+        }
+        .stat-card {
+            background: white;
+            padding: 15px;
+            border-radius: 8px;
+            text-align: center;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .stat-value {
+            font-size: 24px;
+            font-weight: bold;
+            color: #6366f1;
+        }
+        .stat-label {
+            font-size: 12px;
+            color: #666;
+            margin-top: 5px;
+        }
+    </style>
+</head>
+<body>
+    <div class="info-box">
+        <h3>Error Types Distribution - Interactive Demo</h3>
+        <p>This demo shows how the Error Types Distribution chart can toggle between pie and bar chart views. 
+           Click the buttons below to switch between visualization types.</p>
+    </div>
+
+    <div class="chart-container">
+        <div class="chart-header">
+            <h2>Error Types Distribution</h2>
+            <div class="chart-controls">
+                <button id="pieBtn" class="active" onclick="toggleChart('pie')">
+                    📊 Pie Chart
+                </button>
+                <button id="barBtn" onclick="toggleChart('bar')">
+                    📈 Bar Chart
+                </button>
+            </div>
+        </div>
+        <canvas id="errorTypesChart"></canvas>
+    </div>
+
+    <div class="stats-grid">
+        <div class="stat-card">
+            <div class="stat-value">165</div>
+            <div class="stat-label">Total Errors</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-value">5</div>
+            <div class="stat-label">Error Types</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-value">45</div>
+            <div class="stat-label">Most Common</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-value">27.3%</div>
+            <div class="stat-label">Top Error %</div>
+        </div>
+    </div>
+
+    <script>
+        // Sample data
+        const errorData = {
+            labels: ['TimeoutException', 'ValidationError', 'DatabaseError', 'AuthenticationError', 'NetworkError'],
+            values: [45, 38, 32, 25, 25],
+            colors: ['#6366f1', '#10b981', '#f59e0b', '#ef4444', '#3b82f6']
+        };
+
+        let currentChart = null;
+
+        // Initialize with pie chart
+        function initChart() {
+            createPieChart();
+        }
+
+        function createPieChart() {
+            const ctx = document.getElementById('errorTypesChart').getContext('2d');
+            
+            if (currentChart) {
+                currentChart.destroy();
+            }
+
+            currentChart = new Chart(ctx, {
+                type: 'pie',
+                data: {
+                    labels: errorData.labels,
+                    datasets: [{
+                        data: errorData.values,
+                        backgroundColor: errorData.colors,
+                        borderWidth: 0
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            position: 'bottom',
+                            labels: {
+                                padding: 15,
+                                font: {
+                                    size: 12
+                                }
+                            }
+                        },
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    const total = context.dataset.data.reduce((a, b) => a + b, 0);
+                                    const percentage = ((context.raw / total) * 100).toFixed(1);
+                                    return `${context.label}: ${context.raw} errors (${percentage}%)`;
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+        }
+
+        function createBarChart() {
+            const ctx = document.getElementById('errorTypesChart').getContext('2d');
+            
+            if (currentChart) {
+                currentChart.destroy();
+            }
+
+            currentChart = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: errorData.labels,
+                    datasets: [{
+                        label: 'Number of Errors',
+                        data: errorData.values,
+                        backgroundColor: errorData.colors,
+                        borderRadius: 4,
+                        borderSkipped: false
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            display: false
+                        },
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    const total = context.dataset.data.reduce((a, b) => a + b, 0);
+                                    const percentage = ((context.raw / total) * 100).toFixed(1);
+                                    return `Errors: ${context.raw} (${percentage}% of total)`;
+                                }
+                            }
+                        }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            title: {
+                                display: true,
+                                text: 'Number of Errors',
+                                font: {
+                                    size: 12
+                                }
+                            },
+                            ticks: {
+                                stepSize: 10
+                            }
+                        },
+                        x: {
+                            title: {
+                                display: true,
+                                text: 'Error Type',
+                                font: {
+                                    size: 12
+                                }
+                            },
+                            ticks: {
+                                font: {
+                                    size: 11
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+        }
+
+        function toggleChart(type) {
+            // Update button styles
+            const pieBtn = document.getElementById('pieBtn');
+            const barBtn = document.getElementById('barBtn');
+            
+            if (type === 'pie') {
+                pieBtn.classList.add('active');
+                barBtn.classList.remove('active');
+                createPieChart();
+            } else {
+                barBtn.classList.add('active');
+                pieBtn.classList.remove('active');
+                createBarChart();
+            }
+        }
+
+        // Initialize on page load
+        window.onload = function() {
+            initChart();
+        };
+    </script>
+</body>
+</html>

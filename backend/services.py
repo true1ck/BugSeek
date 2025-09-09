@@ -467,55 +467,323 @@ class FileService:
             db.session.rollback()
             return {'success': False, 'error': str(e), 'message': 'Failed to cleanup expired files'}
 
-# Placeholder services for NLP/GenAI features
+# Import AI services
+try:
+    from backend.ai_services import OpenAIService, AIAnalysisService, ErrorPatternRecognizer
+    AI_SERVICES_AVAILABLE = True
+except ImportError:
+    AI_SERVICES_AVAILABLE = False
+    print("Warning: AI services not available. Using placeholder implementations.")
+
+# NLP/GenAI services implementation
 class NLPService:
-    """Placeholder service for NLP operations."""
+    """Enhanced NLP service with real text processing capabilities."""
     
     @staticmethod
     def generate_embeddings(text):
-        """Placeholder for text embedding generation."""
-        # TODO: Implement actual NLP embedding generation
-        return {
-            'success': True,
-            'embeddings': [0.1, 0.2, 0.3, 0.4, 0.5],  # Dummy embeddings
-            'message': 'Embeddings generated (placeholder)'
-        }
+        """Generate text embeddings using TF-IDF or similar approach."""
+        try:
+            from sklearn.feature_extraction.text import TfidfVectorizer
+            import numpy as np
+            
+            # For single text, create a simple TF-IDF representation
+            # In production, you'd use a pre-trained model or more sophisticated approach
+            vectorizer = TfidfVectorizer(max_features=100, stop_words='english')
+            
+            # Fit on the single text (in production, fit on corpus)
+            try:
+                tfidf_matrix = vectorizer.fit_transform([text])
+                embeddings = tfidf_matrix.toarray()[0].tolist()
+                
+                return {
+                    'success': True,
+                    'embeddings': embeddings[:50],  # Return first 50 features
+                    'embedding_size': len(embeddings),
+                    'message': 'Embeddings generated successfully'
+                }
+            except Exception as e:
+                # Fallback to simple hash-based embeddings
+                import hashlib
+                hash_obj = hashlib.md5(text.encode())
+                hash_hex = hash_obj.hexdigest()
+                # Convert hash to numeric embeddings
+                embeddings = [int(hash_hex[i:i+2], 16) / 255.0 for i in range(0, min(32, len(hash_hex)), 2)]
+                
+                return {
+                    'success': True,
+                    'embeddings': embeddings,
+                    'embedding_size': len(embeddings),
+                    'message': 'Embeddings generated (hash-based fallback)'
+                }
+                
+        except ImportError:
+            # If sklearn not available, use simple placeholder
+            return {
+                'success': True,
+                'embeddings': [0.1, 0.2, 0.3, 0.4, 0.5],  # Dummy embeddings
+                'message': 'Embeddings generated (placeholder)'
+            }
+        except Exception as e:
+            return {
+                'success': False,
+                'error': str(e),
+                'message': 'Failed to generate embeddings'
+            }
     
     @staticmethod
-    def find_similar_logs(embeddings, threshold=0.8):
-        """Placeholder for similarity search."""
-        # TODO: Implement actual similarity search
-        return {
-            'success': True,
-            'similar_logs': [],
-            'message': 'Similarity search completed (placeholder)'
-        }
+    def find_similar_logs(cr_id, embeddings=None, threshold=0.7):
+        """Find similar logs using embeddings or text similarity."""
+        try:
+            from backend.models import ErrorLog, SimilarLogMatch
+            from sqlalchemy import and_, or_
+            import json
+            
+            # Get all logs except the current one
+            logs = ErrorLog.query.filter(ErrorLog.Cr_ID != cr_id).limit(100).all()
+            
+            similar_logs = []
+            for log in logs:
+                # Calculate similarity (simplified for now)
+                # In production, use cosine similarity with embeddings
+                similarity_score = 0.0
+                
+                # Simple text-based similarity check
+                current_log = ErrorLog.query.filter_by(Cr_ID=cr_id).first()
+                if current_log:
+                    # Check for matching error names
+                    if log.ErrorName == current_log.ErrorName:
+                        similarity_score += 0.3
+                    
+                    # Check for matching modules
+                    if log.Module == current_log.Module:
+                        similarity_score += 0.2
+                    
+                    # Check for matching teams
+                    if log.TeamName == current_log.TeamName:
+                        similarity_score += 0.1
+                    
+                    # Check description similarity (simple word overlap)
+                    if log.Description and current_log.Description:
+                        desc_words = set(log.Description.lower().split())
+                        current_words = set(current_log.Description.lower().split())
+                        if desc_words and current_words:
+                            overlap = len(desc_words & current_words) / len(desc_words | current_words)
+                            similarity_score += overlap * 0.4
+                
+                if similarity_score >= threshold:
+                    similar_logs.append({
+                        'Cr_ID': log.Cr_ID,
+                        'ErrorName': log.ErrorName,
+                        'Module': log.Module,
+                        'TeamName': log.TeamName,
+                        'Description': log.Description[:200],
+                        'SimilarityScore': round(similarity_score, 2),
+                        'CreatedAt': log.CreatedAt.isoformat() if log.CreatedAt else None
+                    })
+            
+            # Sort by similarity score
+            similar_logs.sort(key=lambda x: x['SimilarityScore'], reverse=True)
+            
+            return {
+                'success': True,
+                'similar_logs': similar_logs[:10],  # Return top 10
+                'total_found': len(similar_logs),
+                'threshold_used': threshold,
+                'message': f'Found {len(similar_logs)} similar logs'
+            }
+            
+        except Exception as e:
+            return {
+                'success': False,
+                'error': str(e),
+                'similar_logs': [],
+                'message': 'Similarity search failed'
+            }
 
 class GenAIService:
-    """Placeholder service for GenAI operations."""
+    """Enhanced GenAI service with real AI integration."""
+    
+    def __init__(self):
+        """Initialize GenAI service."""
+        if AI_SERVICES_AVAILABLE:
+            self.openai_service = OpenAIService()
+            self.ai_analysis_service = AIAnalysisService()
+        else:
+            self.openai_service = None
+            self.ai_analysis_service = None
     
     @staticmethod
-    def generate_summary(log_content):
-        """Placeholder for AI-generated summaries."""
-        # TODO: Implement actual GenAI summary generation
+    def generate_summary(log_content, error_metadata=None):
+        """Generate AI-powered summary for error log."""
+        try:
+            if AI_SERVICES_AVAILABLE:
+                # Use real OpenAI service
+                service = OpenAIService()
+                
+                # Prepare metadata
+                if not error_metadata:
+                    error_metadata = {}
+                
+                result = service.generate_summary(log_content, error_metadata)
+                
+                if result['success']:
+                    return {
+                        'success': True,
+                        'summary': result.get('summary', 'Error analysis completed'),
+                        'confidence': result.get('confidence', 0.85),
+                        'keywords': result.get('keywords', []),
+                        'severity': result.get('severity', 'medium'),
+                        'root_cause': result.get('root_cause', ''),
+                        'message': 'AI summary generated successfully'
+                    }
+                else:
+                    # Fallback to pattern-based analysis
+                    pattern_recognizer = ErrorPatternRecognizer()
+                    pattern_result = pattern_recognizer.recognize_patterns(log_content)
+                    
+                    return {
+                        'success': True,
+                        'summary': f"Detected {pattern_result.get('pattern_count', 0)} error patterns. Primary: {pattern_result.get('primary_pattern', 'Unknown')}",
+                        'confidence': 0.65,
+                        'keywords': [],
+                        'severity': pattern_result.get('estimated_severity', 'medium'),
+                        'message': 'Pattern-based summary generated (AI unavailable)'
+                    }
+            else:
+                # Fallback placeholder
+                return {
+                    'success': True,
+                    'summary': 'Error log analysis: This appears to be a technical issue requiring investigation.',
+                    'confidence': 0.5,
+                    'message': 'Basic summary generated (AI services not available)'
+                }
+                
+        except Exception as e:
+            return {
+                'success': False,
+                'error': str(e),
+                'summary': 'Failed to generate summary',
+                'confidence': 0.0,
+                'message': 'Summary generation failed'
+            }
+    
+    @staticmethod
+    def suggest_solutions(error_log, summary_data=None):
+        """Generate AI-powered solution suggestions."""
+        try:
+            if AI_SERVICES_AVAILABLE:
+                # Use real OpenAI service
+                service = OpenAIService()
+                
+                # Extract log content and metadata
+                log_content = error_log.get('LogContentPreview', '') or error_log.get('Description', '')
+                error_metadata = {
+                    'TeamName': error_log.get('TeamName'),
+                    'Module': error_log.get('Module'),
+                    'ErrorName': error_log.get('ErrorName'),
+                    'Description': error_log.get('Description')
+                }
+                
+                result = service.suggest_solutions(log_content, error_metadata, summary_data)
+                
+                if result['success']:
+                    solutions = result.get('solutions', [])
+                    
+                    # Format solutions for display
+                    formatted_solutions = []
+                    for sol in solutions:
+                        if isinstance(sol, dict):
+                            formatted_solutions.append(sol.get('description', str(sol)))
+                        else:
+                            formatted_solutions.append(str(sol))
+                    
+                    return {
+                        'success': True,
+                        'solutions': formatted_solutions[:5],  # Limit to 5 solutions
+                        'confidence': result.get('confidence', 0.75),
+                        'message': 'AI solutions generated successfully'
+                    }
+                else:
+                    # Fallback to generic solutions
+                    return GenAIService._get_generic_solutions(error_log)
+            else:
+                # Fallback to generic solutions
+                return GenAIService._get_generic_solutions(error_log)
+                
+        except Exception as e:
+            return {
+                'success': False,
+                'error': str(e),
+                'solutions': ['Review error logs for details', 'Check system configuration'],
+                'confidence': 0.3,
+                'message': 'Solution generation failed'
+            }
+    
+    @staticmethod
+    def _get_generic_solutions(error_log):
+        """Generate generic solutions based on error patterns."""
+        solutions = []
+        error_name = (error_log.get('ErrorName', '') or '').lower()
+        description = (error_log.get('Description', '') or '').lower()
+        
+        # Pattern-based generic solutions
+        if 'memory' in error_name or 'memory' in description:
+            solutions.extend([
+                'Check system memory usage and available RAM',
+                'Review memory allocation in the application',
+                'Consider increasing system memory or optimizing code'
+            ])
+        elif 'timeout' in error_name or 'timeout' in description:
+            solutions.extend([
+                'Increase timeout values in configuration',
+                'Check network connectivity and latency',
+                'Optimize slow operations or queries'
+            ])
+        elif 'permission' in error_name or 'permission' in description:
+            solutions.extend([
+                'Check file and directory permissions',
+                'Verify user access rights and roles',
+                'Review security policies and configurations'
+            ])
+        elif 'connection' in error_name or 'network' in error_name:
+            solutions.extend([
+                'Check network connectivity',
+                'Verify firewall and port configurations',
+                'Test connection to external services'
+            ])
+        else:
+            solutions.extend([
+                'Review the complete error log for details',
+                'Check application and system configurations',
+                'Verify all dependencies are properly installed',
+                'Review recent changes that might have caused the issue'
+            ])
+        
         return {
             'success': True,
-            'summary': 'This is a placeholder summary generated by GenAI service.',
-            'confidence': 0.85,
-            'message': 'Summary generated (placeholder)'
+            'solutions': solutions[:5],
+            'confidence': 0.5,
+            'message': 'Generic solutions generated'
         }
     
     @staticmethod
-    def suggest_solutions(error_log):
-        """Placeholder for solution suggestions."""
-        # TODO: Implement actual solution suggestion logic
-        return {
-            'success': True,
-            'solutions': [
-                'Placeholder solution 1: Check configuration files',
-                'Placeholder solution 2: Verify dependencies',
-                'Placeholder solution 3: Review recent code changes'
-            ],
-            'confidence': 0.75,
-            'message': 'Solutions suggested (placeholder)'
-        }
+    def check_openai_status():
+        """Check OpenAI service connection status."""
+        try:
+            if AI_SERVICES_AVAILABLE:
+                service = OpenAIService()
+                return service.check_connection()
+            else:
+                return {
+                    'success': False,
+                    'connected': False,
+                    'message': 'AI services not available',
+                    'error': 'AI services module not loaded'
+                }
+        except Exception as e:
+            return {
+                'success': False,
+                'connected': False,
+                'message': 'Failed to check OpenAI status',
+                'error': str(e)
+            }

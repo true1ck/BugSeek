@@ -534,6 +534,20 @@
     width: 160px;
 }
 
+.chart-controls button {
+    transition: all 0.3s ease;
+}
+
+.chart-controls button.active {
+    background-color: var(--primary) !important;
+    color: white !important;
+    border-color: var(--primary) !important;
+}
+
+.chart-controls button:hover {
+    opacity: 0.8;
+}
+
 .chart-container {
     position: relative;
     height: 300px;
@@ -1293,6 +1307,7 @@ function refreshAllCharts() {
     // Update all charts with new data based on current time range
     updateTrendsChart();
     updateTeamChart();
+    updateErrorTypesChart();
     // ... update other charts
 }
 
@@ -1308,6 +1323,28 @@ function updateTrendsChart() {
     chart.data.datasets[0].data = data;
     chart.data.datasets[0].label = getMetricLabel(metric);
     chart.update();
+}
+
+function updateErrorTypesChart() {
+    const chart = charts.errorTypes;
+    
+    if (window.analyticsData && window.analyticsData.error_type_stats) {
+        const errorStats = window.analyticsData.error_type_stats;
+        const labels = errorStats.map(e => e.error_type || 'Unknown');
+        const data = errorStats.map(e => e.count);
+        
+        // Generate colors for each error type
+        const colors = [
+            '#6366f1', '#10b981', '#f59e0b', '#ef4444', '#3b82f6',
+            '#8b5cf6', '#ec4899', '#14b8a6', '#f97316', '#06b6d4'
+        ];
+        
+        // Update chart data
+        chart.data.labels = labels;
+        chart.data.datasets[0].data = data;
+        chart.data.datasets[0].backgroundColor = colors.slice(0, labels.length);
+        chart.update();
+    }
 }
 
 function updateTeamChart() {
@@ -1437,8 +1474,115 @@ function switchTab(tabId) {
 }
 
 function toggleChart(chartId, type) {
-    // Implementation for toggling chart types
-    console.log(`Toggling ${chartId} to ${type}`);
+    if (chartId === 'errorTypes' && charts.errorTypes) {
+        const chart = charts.errorTypes;
+        const currentData = {
+            labels: chart.data.labels,
+            values: chart.data.datasets[0].data,
+            colors: chart.data.datasets[0].backgroundColor
+        };
+        
+        // Destroy the existing chart
+        chart.destroy();
+        
+        // Create new chart with the specified type
+        const ctx = document.getElementById('errorTypesChart').getContext('2d');
+        
+        if (type === 'bar') {
+            // Create bar chart
+            charts.errorTypes = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: currentData.labels,
+                    datasets: [{
+                        label: 'Error Count',
+                        data: currentData.values,
+                        backgroundColor: currentData.colors,
+                        borderRadius: 4,
+                        borderSkipped: false
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            display: false
+                        },
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    const total = context.dataset.data.reduce((a, b) => a + b, 0);
+                                    const percentage = ((context.raw / total) * 100).toFixed(1);
+                                    return `${context.label}: ${context.raw} (${percentage}%)`;
+                                }
+                            }
+                        }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            title: {
+                                display: true,
+                                text: 'Number of Errors'
+                            }
+                        },
+                        x: {
+                            title: {
+                                display: true,
+                                text: 'Error Type'
+                            }
+                        }
+                    }
+                }
+            });
+        } else {
+            // Create pie chart (default)
+            charts.errorTypes = new Chart(ctx, {
+                type: 'pie',
+                data: {
+                    labels: currentData.labels,
+                    datasets: [{
+                        data: currentData.values,
+                        backgroundColor: currentData.colors
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            position: 'bottom'
+                        },
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    const total = context.dataset.data.reduce((a, b) => a + b, 0);
+                                    const percentage = ((context.raw / total) * 100).toFixed(1);
+                                    return `${context.label}: ${context.raw} (${percentage}%)`;
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+        }
+        
+        // Update button styles to show active state
+        document.querySelectorAll('.chart-controls button').forEach(btn => {
+            const isActive = (type === 'pie' && btn.innerHTML.includes('fa-chart-pie')) ||
+                           (type === 'bar' && btn.innerHTML.includes('fa-chart-bar'));
+            if (isActive) {
+                btn.classList.add('active');
+                btn.style.backgroundColor = '#6366f1';
+                btn.style.color = 'white';
+            } else {
+                btn.classList.remove('active');
+                btn.style.backgroundColor = '';
+                btn.style.color = '';
+            }
+        });
+    }
 }
 
 function applyCustomRange() {

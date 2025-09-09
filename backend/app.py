@@ -1,4 +1,4 @@
-from flask import Flask, request, jsonify, redirect, send_file, abort
+from flask import Flask, request, jsonify, redirect, send_file, abort, current_app
 from flask_cors import CORS
 from flask_restx import Api, Resource, fields, reqparse
 from werkzeug.datastructures import FileStorage
@@ -10,8 +10,13 @@ import sys
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from config.settings import config
-from backend.models import db, create_tables
+from backend.models import db, create_tables, AIAnalysisResult, OpenAIStatus, SimilarLogMatch
 from backend.services import ErrorLogService, FileService, NLPService, GenAIService
+try:
+    from backend.ai_services import OpenAIService, AIAnalysisService
+    AI_SERVICES_AVAILABLE = True
+except ImportError:
+    AI_SERVICES_AVAILABLE = False
 
 def create_app(config_name='development'):
     """Application factory pattern."""
@@ -215,7 +220,7 @@ def create_app(config_name='development'):
                 )
                 
                 if result['success']:
-                    # Generate placeholder embeddings
+                    # Generate embeddings
                     nlp_result = NLPService.generate_embeddings(file_result['content'])
                     if nlp_result['success']:
                         # Update log with embeddings
@@ -223,6 +228,18 @@ def create_app(config_name='development'):
                             result['data']['Cr_ID'],
                             {'Embedding': nlp_result['embeddings']}
                         )
+                    
+                    # Trigger AI analysis if available
+                    if AI_SERVICES_AVAILABLE and current_app.config.get('AI_ANALYSIS_ENABLED', True):
+                        try:
+                            ai_service = AIAnalysisService()
+                            analysis_result = ai_service.analyze_error_log(
+                                result['data']['Cr_ID'],
+                                file_result['content'][:10000],  # Limit content size
+                                log_data
+                            )
+                        except Exception as ai_error:
+                            current_app.logger.error(f"AI analysis failed: {ai_error}")
                     
                     report_url = f"/api/v1/reports/{result['data']['Cr_ID']}"
                     return {
@@ -318,14 +335,47 @@ def create_app(config_name='development'):
                 if result['success']:
                     error_log = result['data']
                     
-                    # Generate AI summary (placeholder)
-                    summary_result = GenAIService.generate_summary(error_log.get('LogContent', ''))
+                    # Get AI analysis if available
+                    ai_analysis = None
+                    if AI_SERVICES_AVAILABLE:
+                        try:
+                            analysis = AIAnalysisResult.query.filter_by(Cr_ID=cr_id).first()
+                            if analysis:
+                                ai_analysis = analysis.to_dict()
+                        except Exception as e:
+                            current_app.logger.error(f"Failed to get AI analysis: {e}")
                     
-                    # Generate solution suggestions (placeholder)
-                    solutions_result = GenAIService.suggest_solutions(error_log)
+                    # Generate or retrieve AI summary
+                    if ai_analysis and ai_analysis.get('Summary'):
+                        summary_result = {
+                            'success': True,
+                            'summary': ai_analysis['Summary'],
+                            'confidence': ai_analysis.get('Confidence', 0.85),
+                            'keywords': ai_analysis.get('Keywords', []),
+                            'severity': ai_analysis.get('EstimatedSeverity', 'medium')
+                        }
+                    else:
+                        # Generate new summary
+                        summary_result = GenAIService.generate_summary(
+                            error_log.get('LogContentPreview', ''),
+                            error_log
+                        )
                     
-                    # Find similar logs (placeholder)
-                    similar_result = NLPService.find_similar_logs(error_log.get('Embedding', []))
+                    # Generate or retrieve solution suggestions
+                    if ai_analysis and ai_analysis.get('SuggestedSolutions'):
+                        solutions_result = {
+                            'success': True,
+                            'solutions': ai_analysis['SuggestedSolutions'],
+                            'confidence': ai_analysis.get('Confidence', 0.75)
+                        }
+                    else:
+                        solutions_result = GenAIService.suggest_solutions(error_log, summary_result)
+                    
+                    # Find similar logs
+                    similar_result = NLPService.find_similar_logs(
+                        cr_id,
+                        error_log.get('Embedding', [])
+                    )
                     
                     # Prepare comprehensive report
                     report = {
@@ -472,6 +522,111 @@ def create_app(config_name='development'):
                 return jsonify({'success': False, 'message': result['message']}), 400
         except Exception as e:
             return jsonify({'success': False, 'message': str(e)}), 500
+    
+    @app.route('/api/v1/openai/status')
+    def get_openai_status():
+        """Get OpenAI connection status"""
+        try:
+            result = GenAIService.check_openai_status()
+            return jsonify(result), 200
+        except Exception as e:
+            return jsonify({
+                'success': False,
+                'connected': False,
+                'message': 'Failed to check OpenAI status',
+                'error': str(e)
+            }), 500
+    
+    @app.route('/api/v1/openai/test')
+    def test_openai_connection():
+        """Test OpenAI connection with a simple request"""
+        try:
+            if AI_SERVICES_AVAILABLE:
+                service = OpenAIService()
+                result = service.check_connection()
+                return jsonify(result), 200
+            else:
+                return jsonify({
+                    'success': False,
+                    'connected': False,
+                    'message': 'AI services not available'
+                }), 503
+        except Exception as e:
+            return jsonify({
+                'success': False,
+                'connected': False,
+                'message': 'Connection test failed',
+                'error': str(e)
+            }), 500
+    
+    @app.route('/api/v1/ai/analyze/<string:cr_id>', methods=['POST'])
+    def trigger_ai_analysis(cr_id):
+        """Manually trigger AI analysis for a specific log"""
+        try:
+            if not AI_SERVICES_AVAILABLE:
+                return jsonify({
+                    'success': False,
+                    'message': 'AI services not available'
+                }), 503
+            
+            # Get the error log
+            log_result = ErrorLogService.get_error_log_by_id(cr_id)
+            if not log_result['success']:
+                return jsonify(log_result), 404
+            
+            error_log = log_result['data']
+            
+            # Get file content
+            file_result = FileService.get_file_by_cr_id(cr_id)
+            log_content = ''
+            if file_result['success']:
+                content_result = FileService.read_file_content(file_result['file_record'].StoredPath)
+                if content_result['success']:
+                    log_content = content_result['content']
+            
+            if not log_content:
+                log_content = error_log.get('LogContentPreview', '')
+            
+            # Perform AI analysis
+            ai_service = AIAnalysisService()
+            result = ai_service.analyze_error_log(
+                cr_id,
+                log_content[:10000],  # Limit content size
+                error_log
+            )
+            
+            return jsonify(result), 200 if result['success'] else 500
+            
+        except Exception as e:
+            return jsonify({
+                'success': False,
+                'message': 'AI analysis failed',
+                'error': str(e)
+            }), 500
+    
+    @app.route('/api/v1/ai/status/<string:cr_id>')
+    def get_ai_analysis_status(cr_id):
+        """Get AI analysis status for a specific log"""
+        try:
+            if AI_SERVICES_AVAILABLE:
+                analysis = AIAnalysisResult.query.filter_by(Cr_ID=cr_id).first()
+                if analysis:
+                    return jsonify({
+                        'success': True,
+                        'analysis': analysis.to_dict()
+                    }), 200
+            
+            return jsonify({
+                'success': False,
+                'message': 'No AI analysis found for this log'
+            }), 404
+            
+        except Exception as e:
+            return jsonify({
+                'success': False,
+                'message': 'Failed to get analysis status',
+                'error': str(e)
+            }), 500
     
     @app.route('/')
     def root_index():

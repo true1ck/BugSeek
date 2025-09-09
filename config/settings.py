@@ -39,6 +39,18 @@ class Config:
     # Streamlit Configuration
     STREAMLIT_SERVER_PORT = int(os.getenv('STREAMLIT_SERVER_PORT', '8501'))
     BACKEND_API_URL = os.getenv('BACKEND_API_URL', 'http://localhost:5000')
+    
+    # OpenAI/Azure Configuration
+    OPENAI_API_KEY = os.getenv('OPENAI_API_KEY', '')
+    AZURE_OPENAI_ENDPOINT = os.getenv('AZURE_OPENAI_ENDPOINT', 'https://mlop-azure-gateway.mediatek.inc')
+    AZURE_OPENAI_API_VERSION = os.getenv('AZURE_OPENAI_API_VERSION', '2024-10-21')
+    AZURE_OPENAI_DEPLOYMENT_NAME = os.getenv('AZURE_OPENAI_DEPLOYMENT_NAME', 'aida-gpt-4o-mini')
+    
+    # AI Analysis Configuration
+    AI_ANALYSIS_ENABLED = os.getenv('AI_ANALYSIS_ENABLED', 'True').lower() == 'true'
+    AI_MAX_RETRIES = int(os.getenv('AI_MAX_RETRIES', '3'))
+    AI_REQUEST_TIMEOUT = int(os.getenv('AI_REQUEST_TIMEOUT', '30'))
+    AI_BATCH_SIZE = int(os.getenv('AI_BATCH_SIZE', '10'))
 
 class DevelopmentConfig(Config):
     """Development configuration."""

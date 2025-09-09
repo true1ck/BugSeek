@@ -41,6 +41,7 @@ class ErrorLog(db.Model):
     
     # Relationships
     files = relationship('ErrorLogFile', back_populates='error_log', cascade='all, delete-orphan')
+    ai_analyses = relationship('AIAnalysisResult', back_populates='error_log', cascade='all, delete-orphan')
     
     # Indexes for fast search (defined as class attributes)
     __table_args__ = (
@@ -203,6 +204,279 @@ class ErrorLogFile(db.Model):
     def __repr__(self):
         """String representation of ErrorLogFile."""
         return f'<ErrorLogFile {self.File_ID}: {self.OriginalFileName} ({self.get_file_size_formatted()})>'
+
+
+class AIAnalysisResult(db.Model):
+    """AI analysis results model for storing GenAI analysis data."""
+    
+    __tablename__ = 'ai_analysis_results'
+    
+    # Primary Key
+    Analysis_ID = db.Column(db.String(36), primary_key=True, default=lambda: str(uuid.uuid4()))
+    
+    # Foreign Key to ErrorLog
+    Cr_ID = db.Column(db.String(36), ForeignKey('error_logs.Cr_ID'), nullable=False)
+    
+    # Analysis Type
+    AnalysisType = db.Column(db.String(50), nullable=False)  # 'summary', 'solution', 'similarity'
+    
+    # AI Analysis Results
+    Summary = db.Column(db.Text, nullable=True)  # AI-generated summary
+    Confidence = db.Column(db.Float, default=0.0, nullable=False)  # Confidence score (0.0-1.0)
+    Keywords = db.Column(db.Text, nullable=True)  # JSON array of extracted keywords
+    EstimatedSeverity = db.Column(db.String(20), nullable=True)  # AI-estimated severity
+    
+    # Solution Suggestions (JSON format)
+    SuggestedSolutions = db.Column(db.Text, nullable=True)  # JSON array of solutions
+    SolutionCategories = db.Column(db.Text, nullable=True)  # JSON array of solution categories
+    
+    # Error Pattern Recognition
+    ErrorPattern = db.Column(db.String(100), nullable=True)  # Detected error pattern
+    ErrorCategory = db.Column(db.String(50), nullable=True)  # Categorized error type
+    
+    # Processing Status
+    Status = db.Column(db.String(20), default='pending', nullable=False)  # pending, processing, completed, failed
+    ProcessingStartTime = db.Column(db.DateTime, nullable=True)
+    ProcessingEndTime = db.Column(db.DateTime, nullable=True)
+    ErrorMessage = db.Column(db.Text, nullable=True)  # Error message if processing failed
+    
+    # API Usage Tracking
+    TokensUsed = db.Column(db.Integer, default=0, nullable=False)  # OpenAI tokens used
+    ModelUsed = db.Column(db.String(50), nullable=True)  # AI model used
+    ApiCost = db.Column(db.Float, default=0.0, nullable=False)  # Estimated API cost
+    
+    # Timestamps
+    CreatedAt = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
+    UpdatedAt = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    
+    # Relationship to ErrorLog
+    error_log = relationship('ErrorLog', back_populates='ai_analyses')
+    
+    # Indexes
+    __table_args__ = (
+        Index('idx_ai_cr_id', 'Cr_ID'),
+        Index('idx_ai_analysis_type', 'AnalysisType'),
+        Index('idx_ai_status', 'Status'),
+        Index('idx_ai_created_at', 'CreatedAt'),
+        Index('idx_ai_error_pattern', 'ErrorPattern'),
+    )
+    
+    def __init__(self, **kwargs):
+        """Initialize AIAnalysisResult instance."""
+        super(AIAnalysisResult, self).__init__(**kwargs)
+    
+    def to_dict(self):
+        """Convert AIAnalysisResult instance to dictionary."""
+        return {
+            'Analysis_ID': self.Analysis_ID,
+            'Cr_ID': self.Cr_ID,
+            'AnalysisType': self.AnalysisType,
+            'Summary': self.Summary,
+            'Confidence': self.Confidence,
+            'Keywords': json.loads(self.Keywords) if self.Keywords else [],
+            'EstimatedSeverity': self.EstimatedSeverity,
+            'SuggestedSolutions': json.loads(self.SuggestedSolutions) if self.SuggestedSolutions else [],
+            'SolutionCategories': json.loads(self.SolutionCategories) if self.SolutionCategories else [],
+            'ErrorPattern': self.ErrorPattern,
+            'ErrorCategory': self.ErrorCategory,
+            'Status': self.Status,
+            'ProcessingStartTime': self.ProcessingStartTime.isoformat() if self.ProcessingStartTime else None,
+            'ProcessingEndTime': self.ProcessingEndTime.isoformat() if self.ProcessingEndTime else None,
+            'ErrorMessage': self.ErrorMessage,
+            'TokensUsed': self.TokensUsed,
+            'ModelUsed': self.ModelUsed,
+            'ApiCost': self.ApiCost,
+            'CreatedAt': self.CreatedAt.isoformat() if self.CreatedAt else None,
+            'UpdatedAt': self.UpdatedAt.isoformat() if self.UpdatedAt else None
+        }
+    
+    def set_keywords(self, keywords_list):
+        """Set keywords as JSON string."""
+        if keywords_list:
+            self.Keywords = json.dumps(keywords_list)
+        else:
+            self.Keywords = None
+    
+    def set_solutions(self, solutions_list):
+        """Set suggested solutions as JSON string."""
+        if solutions_list:
+            self.SuggestedSolutions = json.dumps(solutions_list)
+        else:
+            self.SuggestedSolutions = None
+    
+    def set_solution_categories(self, categories_list):
+        """Set solution categories as JSON string."""
+        if categories_list:
+            self.SolutionCategories = json.dumps(categories_list)
+        else:
+            self.SolutionCategories = None
+    
+    def __repr__(self):
+        """String representation of AIAnalysisResult."""
+        return f'<AIAnalysisResult {self.Analysis_ID}: {self.AnalysisType} - {self.Status}>'
+
+
+class OpenAIStatus(db.Model):
+    """OpenAI API status and configuration tracking."""
+    
+    __tablename__ = 'openai_status'
+    
+    # Primary Key
+    Status_ID = db.Column(db.String(36), primary_key=True, default=lambda: str(uuid.uuid4()))
+    
+    # API Configuration
+    ApiKeyHash = db.Column(db.String(64), nullable=True)  # SHA256 hash of API key for tracking
+    ApiEndpoint = db.Column(db.String(255), nullable=True)  # OpenAI API endpoint
+    ModelVersion = db.Column(db.String(50), nullable=True)  # Model version being used
+    
+    # Connection Status
+    IsConnected = db.Column(db.Boolean, default=False, nullable=False)
+    LastConnectionCheck = db.Column(db.DateTime, nullable=True)
+    LastSuccessfulCall = db.Column(db.DateTime, nullable=True)
+    LastErrorMessage = db.Column(db.Text, nullable=True)
+    
+    # Usage Statistics
+    TotalApiCalls = db.Column(db.Integer, default=0, nullable=False)
+    TotalTokensUsed = db.Column(db.Integer, default=0, nullable=False)
+    EstimatedTotalCost = db.Column(db.Float, default=0.0, nullable=False)
+    
+    # Rate Limiting Info
+    RequestsPerMinute = db.Column(db.Integer, nullable=True)
+    TokensPerMinute = db.Column(db.Integer, nullable=True)
+    LastRateLimitHit = db.Column(db.DateTime, nullable=True)
+    
+    # Timestamps
+    CreatedAt = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
+    UpdatedAt = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    
+    # Indexes
+    __table_args__ = (
+        Index('idx_openai_updated_at', 'UpdatedAt'),
+        Index('idx_openai_is_connected', 'IsConnected'),
+    )
+    
+    def __init__(self, **kwargs):
+        """Initialize OpenAIStatus instance."""
+        super(OpenAIStatus, self).__init__(**kwargs)
+    
+    def to_dict(self):
+        """Convert OpenAIStatus instance to dictionary."""
+        return {
+            'Status_ID': self.Status_ID,
+            'ApiEndpoint': self.ApiEndpoint,
+            'ModelVersion': self.ModelVersion,
+            'IsConnected': self.IsConnected,
+            'LastConnectionCheck': self.LastConnectionCheck.isoformat() if self.LastConnectionCheck else None,
+            'LastSuccessfulCall': self.LastSuccessfulCall.isoformat() if self.LastSuccessfulCall else None,
+            'LastErrorMessage': self.LastErrorMessage,
+            'TotalApiCalls': self.TotalApiCalls,
+            'TotalTokensUsed': self.TotalTokensUsed,
+            'EstimatedTotalCost': self.EstimatedTotalCost,
+            'RequestsPerMinute': self.RequestsPerMinute,
+            'TokensPerMinute': self.TokensPerMinute,
+            'LastRateLimitHit': self.LastRateLimitHit.isoformat() if self.LastRateLimitHit else None,
+            'CreatedAt': self.CreatedAt.isoformat() if self.CreatedAt else None,
+            'UpdatedAt': self.UpdatedAt.isoformat() if self.UpdatedAt else None
+        }
+    
+    @staticmethod
+    def get_current_status():
+        """Get the most recent OpenAI status record."""
+        return OpenAIStatus.query.order_by(OpenAIStatus.UpdatedAt.desc()).first()
+    
+    def update_connection_status(self, is_connected, error_message=None):
+        """Update connection status."""
+        self.IsConnected = is_connected
+        self.LastConnectionCheck = datetime.utcnow()
+        if is_connected:
+            self.LastSuccessfulCall = datetime.utcnow()
+        if error_message:
+            self.LastErrorMessage = error_message
+        self.UpdatedAt = datetime.utcnow()
+    
+    def increment_usage(self, tokens_used, estimated_cost):
+        """Increment usage statistics."""
+        self.TotalApiCalls += 1
+        self.TotalTokensUsed += tokens_used
+        self.EstimatedTotalCost += estimated_cost
+        self.UpdatedAt = datetime.utcnow()
+    
+    def __repr__(self):
+        """String representation of OpenAIStatus."""
+        return f'<OpenAIStatus {self.Status_ID}: Connected={self.IsConnected}>'
+
+
+class SimilarLogMatch(db.Model):
+    """Similarity matching results between error logs."""
+    
+    __tablename__ = 'similar_log_matches'
+    
+    # Primary Key
+    Match_ID = db.Column(db.String(36), primary_key=True, default=lambda: str(uuid.uuid4()))
+    
+    # Source and Target Logs
+    Source_Cr_ID = db.Column(db.String(36), ForeignKey('error_logs.Cr_ID'), nullable=False)
+    Target_Cr_ID = db.Column(db.String(36), ForeignKey('error_logs.Cr_ID'), nullable=False)
+    
+    # Similarity Metrics
+    SimilarityScore = db.Column(db.Float, nullable=False)  # 0.0 - 1.0 similarity score
+    MatchingMethod = db.Column(db.String(50), nullable=False)  # 'tfidf', 'embeddings', 'keywords'
+    ConfidenceLevel = db.Column(db.String(20), nullable=False)  # 'low', 'medium', 'high'
+    
+    # Match Details
+    CommonKeywords = db.Column(db.Text, nullable=True)  # JSON array of common keywords
+    MatchingPatterns = db.Column(db.Text, nullable=True)  # JSON array of matching patterns
+    
+    # Timestamps
+    CreatedAt = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
+    
+    # Relationships
+    source_log = relationship('ErrorLog', foreign_keys=[Source_Cr_ID])
+    target_log = relationship('ErrorLog', foreign_keys=[Target_Cr_ID])
+    
+    # Indexes
+    __table_args__ = (
+        Index('idx_similar_source', 'Source_Cr_ID'),
+        Index('idx_similar_target', 'Target_Cr_ID'),
+        Index('idx_similar_score', 'SimilarityScore'),
+        Index('idx_similar_method', 'MatchingMethod'),
+    )
+    
+    def __init__(self, **kwargs):
+        """Initialize SimilarLogMatch instance."""
+        super(SimilarLogMatch, self).__init__(**kwargs)
+    
+    def to_dict(self):
+        """Convert SimilarLogMatch instance to dictionary."""
+        return {
+            'Match_ID': self.Match_ID,
+            'Source_Cr_ID': self.Source_Cr_ID,
+            'Target_Cr_ID': self.Target_Cr_ID,
+            'SimilarityScore': self.SimilarityScore,
+            'MatchingMethod': self.MatchingMethod,
+            'ConfidenceLevel': self.ConfidenceLevel,
+            'CommonKeywords': json.loads(self.CommonKeywords) if self.CommonKeywords else [],
+            'MatchingPatterns': json.loads(self.MatchingPatterns) if self.MatchingPatterns else [],
+            'CreatedAt': self.CreatedAt.isoformat() if self.CreatedAt else None
+        }
+    
+    def set_common_keywords(self, keywords_list):
+        """Set common keywords as JSON string."""
+        if keywords_list:
+            self.CommonKeywords = json.dumps(keywords_list)
+        else:
+            self.CommonKeywords = None
+    
+    def set_matching_patterns(self, patterns_list):
+        """Set matching patterns as JSON string."""
+        if patterns_list:
+            self.MatchingPatterns = json.dumps(patterns_list)
+        else:
+            self.MatchingPatterns = None
+    
+    def __repr__(self):
+        """String representation of SimilarLogMatch."""
+        return f'<SimilarLogMatch {self.Match_ID}: {self.SimilarityScore:.2f} ({self.MatchingMethod})>'
 
 def create_tables(app):
     """Create all database tables."""

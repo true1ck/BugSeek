@@ -191,6 +191,13 @@ with st.sidebar:
         st.success("🟢 API Connected")
     else:
         st.error("🔴 API Disconnected")
+    
+    # OpenAI Status
+    openai_data, openai_status = make_api_request("/openai/status")
+    if openai_status == 200 and openai_data.get('connected'):
+        st.success("🟢 OpenAI Connected")
+    else:
+        st.warning("🟠 OpenAI Disconnected")
 
 # Main content area
 if st.session_state.current_page == "Upload":
@@ -415,36 +422,126 @@ elif st.session_state.current_page == "Reports" or st.session_state.current_page
                             height=300
                         )
                 
-                # AI Analysis sections (placeholders)
+                # AI Analysis sections
                 st.subheader("🤖 AI Analysis")
                 
+                # Check if AI analysis exists
+                ai_status_data, _ = make_api_request(f"/ai/status/{log_id}")
+                if ai_status_data.get('success') and ai_status_data.get('analysis'):
+                    ai_analysis = ai_status_data['analysis']
+                    
+                    # Show analysis status
+                    status_color = {
+                        'completed': '🟢',
+                        'processing': '🟡',
+                        'failed': '🔴',
+                        'pending': '⚪'
+                    }.get(ai_analysis.get('Status', 'pending'), '⚪')
+                    
+                    st.info(f"{status_color} AI Analysis Status: {ai_analysis.get('Status', 'Unknown')}")
+                    
+                    if ai_analysis.get('Status') == 'completed':
+                        col1, col2 = st.columns(2)
+                        
+                        with col1:
+                            st.markdown("**🧠 AI Summary**")
+                            if ai_analysis.get('Summary'):
+                                st.info(ai_analysis['Summary'])
+                                st.caption(f"Confidence: {ai_analysis.get('Confidence', 0)*100:.1f}%")
+                                
+                                if ai_analysis.get('Keywords'):
+                                    st.markdown("**Keywords:**")
+                                    st.write(", ".join(ai_analysis['Keywords'][:10]))
+                            else:
+                                st.warning("Summary not available")
+                        
+                        with col2:
+                            st.markdown("**🔍 Error Pattern Analysis**")
+                            if ai_analysis.get('ErrorPattern'):
+                                st.info(f"Pattern: {ai_analysis['ErrorPattern']}")
+                                st.info(f"Category: {ai_analysis.get('ErrorCategory', 'Unknown')}")
+                                st.info(f"Severity: {ai_analysis.get('EstimatedSeverity', 'Unknown')}")
+                            else:
+                                st.warning("No patterns detected")
+                        
+                        # Show suggested solutions
+                        if ai_analysis.get('SuggestedSolutions'):
+                            st.markdown("**💡 AI-Suggested Solutions**")
+                            solutions = ai_analysis['SuggestedSolutions']
+                            for i, solution in enumerate(solutions[:5], 1):
+                                if isinstance(solution, dict):
+                                    st.write(f"**{i}.** {solution.get('description', solution)}")
+                                    if solution.get('steps'):
+                                        for step in solution['steps']:
+                                            st.write(f"   - {step}")
+                                else:
+                                    st.write(f"**{i}.** {solution}")
+                    
+                    elif ai_analysis.get('Status') == 'processing':
+                        st.info("⏳ AI analysis is in progress. Please check back in a moment.")
+                        if st.button("🔄 Refresh Status"):
+                            st.rerun()
+                    
+                    elif ai_analysis.get('Status') == 'failed':
+                        st.error(f"AI analysis failed: {ai_analysis.get('ErrorMessage', 'Unknown error')}")
+                        if st.button("🔄 Retry Analysis"):
+                            retry_result, _ = make_api_request(f"/ai/analyze/{log_id}", "POST")
+                            if retry_result.get('success'):
+                                st.success("Analysis restarted. Please refresh in a moment.")
+                                st.rerun()
+                
+                else:
+                    # No AI analysis yet
+                    st.warning("AI analysis not yet performed for this log.")
+                    if st.button("🚀 Start AI Analysis"):
+                        with st.spinner("Starting AI analysis..."):
+                            analysis_result, _ = make_api_request(f"/ai/analyze/{log_id}", "POST")
+                            if analysis_result.get('success'):
+                                st.success("AI analysis started! Results will appear shortly.")
+                                time.sleep(2)
+                                st.rerun()
+                            else:
+                                st.error(f"Failed to start analysis: {analysis_result.get('message', 'Unknown error')}")
+                
+                # Fallback to old placeholder sections if needed
                 col1, col2 = st.columns(2)
                 
                 with col1:
-                    st.markdown("**🧠 AI Summary**")
-                    if report.get('ai_summary') and report['ai_summary'].get('success'):
-                        st.info(report['ai_summary']['summary'])
-                        st.caption(f"Confidence: {report['ai_summary']['confidence']*100:.1f}%")
-                    else:
-                        st.warning("AI summary not available (placeholder)")
+                    if not (ai_status_data.get('success') and ai_status_data.get('analysis')):
+                        st.markdown("**🧠 AI Summary**")
+                        if report.get('ai_summary') and report['ai_summary'].get('success'):
+                            st.info(report['ai_summary']['summary'])
+                            st.caption(f"Confidence: {report['ai_summary']['confidence']*100:.1f}%")
+                        else:
+                            st.warning("AI summary not available")
                 
                 with col2:
                     st.markdown("**🔍 Similar Logs**")
                     if report.get('similar_logs') and report['similar_logs'].get('success'):
-                        similar_count = len(report['similar_logs'].get('similar_logs', []))
+                        similar_logs = report['similar_logs'].get('similar_logs', [])
+                        similar_count = len(similar_logs)
                         st.info(f"Found {similar_count} similar logs")
+                        
+                        if similar_logs:
+                            with st.expander("View Similar Logs"):
+                                for similar in similar_logs[:5]:
+                                    st.write(f"**{similar['ErrorName']}** ({similar['Module']})") 
+                                    st.write(f"Team: {similar['TeamName']}, Score: {similar.get('SimilarityScore', 0):.2f}")
+                                    st.write("---")
                     else:
-                        st.warning("Similarity analysis not available (placeholder)")
+                        st.warning("Similarity analysis not available")
                 
-                # Solution suggestions
-                st.subheader("💡 Suggested Solutions")
-                if report.get('suggested_solutions') and report['suggested_solutions'].get('success'):
-                    solutions = report['suggested_solutions']['solutions']
-                    for i, solution in enumerate(solutions, 1):
-                        st.write(f"**{i}.** {solution}")
-                    st.caption(f"Confidence: {report['suggested_solutions']['confidence']*100:.1f}%")
-                else:
-                    st.warning("Solution suggestions not available (placeholder)")
+                # Solution suggestions (if not already shown from AI analysis)
+                if not (ai_status_data.get('success') and ai_status_data.get('analysis') and 
+                        ai_status_data['analysis'].get('SuggestedSolutions')):
+                    st.subheader("💡 Suggested Solutions")
+                    if report.get('suggested_solutions') and report['suggested_solutions'].get('success'):
+                        solutions = report['suggested_solutions']['solutions']
+                        for i, solution in enumerate(solutions, 1):
+                            st.write(f"**{i}.** {solution}")
+                        st.caption(f"Confidence: {report['suggested_solutions']['confidence']*100:.1f}%")
+                    else:
+                        st.warning("Solution suggestions not available")
             
             else:
                 display_error_message(f"Failed to load report: {response_data.get('message', 'Unknown error')}")

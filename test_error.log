@@ -1,0 +1,58 @@
+2025-09-09 14:23:45.678 ERROR [AuthenticationService] - Authentication timeout exception occurred
+Stack Trace:
+java.net.SocketTimeoutException: Read timed out
+    at java.net.SocketInputStream.socketRead0(Native Method)
+    at java.net.SocketInputStream.socketRead(SocketInputStream.java:116)
+    at java.net.SocketInputStream.read(SocketInputStream.java:171)
+    at java.net.SocketInputStream.read(SocketInputStream.java:141)
+    at org.postgresql.core.VisibleBufferedInputStream.readMore(VisibleBufferedInputStream.java:140)
+    at org.postgresql.core.VisibleBufferedInputStream.ensureBytes(VisibleBufferedInputStream.java:109)
+    at org.postgresql.core.VisibleBufferedInputStream.read(VisibleBufferedInputStream.java:67)
+    at org.postgresql.core.PGStream.receiveChar(PGStream.java:306)
+    at org.postgresql.core.v3.ConnectionFactoryImpl.doAuthentication(ConnectionFactoryImpl.java:335)
+    at org.postgresql.core.v3.ConnectionFactoryImpl.openConnectionImpl(ConnectionFactoryImpl.java:250)
+    at org.postgresql.core.ConnectionFactory.openConnection(ConnectionFactory.java:49)
+    at org.postgresql.jdbc.PgConnection.<init>(PgConnection.java:195)
+    at org.postgresql.Driver.makeConnection(Driver.java:454)
+    at org.postgresql.Driver.connect(Driver.java:256)
+    at com.zaxxer.hikari.util.DriverDataSource.getConnection(DriverDataSource.java:138)
+    at com.zaxxer.hikari.pool.PoolBase.newConnection(PoolBase.java:354)
+    at com.zaxxer.hikari.pool.PoolBase.newPoolEntry(PoolBase.java:202)
+    at com.zaxxer.hikari.pool.HikariPool.createPoolEntry(HikariPool.java:473)
+    at com.zaxxer.hikari.pool.HikariPool.checkFailFast(HikariPool.java:554)
+    at com.zaxxer.hikari.pool.HikariPool.<init>(HikariPool.java:115)
+    at com.zaxxer.hikari.HikariDataSource.getConnection(HikariDataSource.java:112)
+    at com.myapp.authentication.AuthenticationService.validateUser(AuthenticationService.java:145)
+    at com.myapp.authentication.LoginController.handleLogin(LoginController.java:78)
+
+Environment: Production
+Server: app-server-01.prod.example.com
+Database: postgresql://db-cluster-01.prod.example.com:5432/users_db
+Connection Pool Settings:
+  - Max Pool Size: 20
+  - Connection Timeout: 30000ms
+  - Idle Timeout: 600000ms
+  - Max Lifetime: 1800000ms
+
+Additional Context:
+- Error occurred during peak traffic hours (14:00-15:00)
+- Database server CPU utilization was at 87% at the time
+- Network latency between app server and database: 45ms (usually 5ms)
+- 127 similar timeout errors in the last hour
+- No recent deployments or configuration changes
+
+Attempted Mitigations:
+1. Increased connection timeout from 30s to 60s - Did not resolve
+2. Restarted application server - Temporary improvement for 10 minutes
+3. Database team investigating potential locking issues
+
+Impact:
+- Users unable to login
+- Estimated 2000+ users affected
+- Revenue impact: ~$15,000/hour
+
+Priority: CRITICAL
+Incident ID: INC-2025-09-09-001
+Team: Backend
+Module: Authentication
+Owner: john.doe@company.com

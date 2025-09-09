@@ -1,0 +1,676 @@
+{% extends "base.html" %}
+
+{% block title %}Upload Log - BugSeek{% endblock %}
+
+{% block content %}
+<h1 class="page-title">
+    <i class="fas fa-cloud-upload-alt"></i>
+    Upload Error Log
+</h1>
+<p class="page-subtitle">Upload and analyze your error logs with AI-powered insights</p>
+
+<!-- Progress Section (Hidden Initially) -->
+<div id="progress-section" style="display: none;">
+    <div class="card progress-card">
+        <h3><i class="fas fa-cog fa-spin"></i> Processing Your Log File</h3>
+        
+        <!-- Progress Steps -->
+        <div class="progress-steps">
+            <div class="progress-step" id="step-1">
+                <div class="step-icon">
+                    <i class="fas fa-upload"></i>
+                </div>
+                <div class="step-details">
+                    <div class="step-title">Uploading File</div>
+                    <div class="step-status">In Progress...</div>
+                </div>
+            </div>
+            
+            <div class="progress-step" id="step-2">
+                <div class="step-icon">
+                    <i class="fas fa-database"></i>
+                </div>
+                <div class="step-details">
+                    <div class="step-title">Saving to Database</div>
+                    <div class="step-status">Waiting...</div>
+                </div>
+            </div>
+            
+            <div class="progress-step" id="step-3">
+                <div class="step-icon">
+                    <i class="fas fa-brain"></i>
+                </div>
+                <div class="step-details">
+                    <div class="step-title">AI Analysis</div>
+                    <div class="step-status">Waiting...</div>
+                </div>
+            </div>
+            
+            <div class="progress-step" id="step-4">
+                <div class="step-icon">
+                    <i class="fas fa-search"></i>
+                </div>
+                <div class="step-details">
+                    <div class="step-title">Finding Similar Logs</div>
+                    <div class="step-status">Waiting...</div>
+                </div>
+            </div>
+            
+            <div class="progress-step" id="step-5">
+                <div class="step-icon">
+                    <i class="fas fa-file-alt"></i>
+                </div>
+                <div class="step-details">
+                    <div class="step-title">Generating Report</div>
+                    <div class="step-status">Waiting...</div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Progress Bar -->
+        <div class="progress-bar-container">
+            <div class="progress-bar" id="main-progress" style="width: 0%"></div>
+        </div>
+        
+        <!-- Status Message -->
+        <div class="progress-message" id="status-message">
+            Initializing upload process...
+        </div>
+    </div>
+</div>
+
+<!-- Success Results Section (Hidden Initially) -->
+<div id="results-section" style="display: none;">
+    <div class="card success-card">
+        <div class="success-header">
+            <i class="fas fa-check-circle"></i>
+            <h2>Analysis Complete!</h2>
+        </div>
+        
+        <!-- Quick Summary -->
+        <div class="analysis-summary">
+            <h4>📊 Analysis Summary</h4>
+            <div id="ai-summary-text" class="summary-text">
+                <!-- AI Summary will be inserted here -->
+            </div>
+        </div>
+        
+        <!-- Key Results -->
+        <div class="results-grid">
+            <div class="result-card">
+                <div class="result-icon error-pattern">
+                    <i class="fas fa-bug"></i>
+                </div>
+                <div class="result-info">
+                    <div class="result-label">Error Pattern</div>
+                    <div class="result-value" id="error-pattern">-</div>
+                </div>
+            </div>
+            
+            <div class="result-card">
+                <div class="result-icon severity">
+                    <i class="fas fa-exclamation-triangle"></i>
+                </div>
+                <div class="result-info">
+                    <div class="result-label">Severity</div>
+                    <div class="result-value" id="severity-level">-</div>
+                </div>
+            </div>
+            
+            <div class="result-card">
+                <div class="result-icon similar">
+                    <i class="fas fa-link"></i>
+                </div>
+                <div class="result-info">
+                    <div class="result-label">Similar Logs Found</div>
+                    <div class="result-value" id="similar-count">-</div>
+                </div>
+            </div>
+            
+            <div class="result-card">
+                <div class="result-icon solutions">
+                    <i class="fas fa-lightbulb"></i>
+                </div>
+                <div class="result-info">
+                    <div class="result-label">Solutions</div>
+                    <div class="result-value" id="solutions-count">-</div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Suggested Solutions -->
+        <div class="solutions-section">
+            <h4>💡 AI-Suggested Solutions</h4>
+            <ol id="solutions-list" class="solutions-list">
+                <!-- Solutions will be inserted here -->
+            </ol>
+        </div>
+        
+        <!-- Action Buttons -->
+        <div class="action-buttons">
+            <a id="view-full-report" href="#" class="btn btn-primary">
+                <i class="fas fa-file-alt"></i>
+                View Full Report
+            </a>
+            <button onclick="resetForm()" class="btn btn-outline">
+                <i class="fas fa-plus"></i>
+                Upload Another Log
+            </button>
+        </div>
+    </div>
+</div>
+
+<!-- Upload Form (Default View) -->
+<div id="upload-form-section">
+    <div class="card">
+        <form id="upload-form" method="POST" enctype="multipart/form-data" onsubmit="return handleSubmit(event)">
+            <div class="grid">
+                <div>
+                    <div class="form-group">
+                        <label for="file">
+                            <i class="fas fa-file"></i> Log File *
+                        </label>
+                        <input type="file" id="file" name="file" class="form-control" 
+                               accept=".txt,.log,.json,.xml" required>
+                        <div class="file-preview" id="file-preview"></div>
+                        <small>Supported: TXT, LOG, JSON, XML (Max 16MB)</small>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="team_name">
+                            <i class="fas fa-users"></i> Team Name *
+                        </label>
+                        <input type="text" id="team_name" name="team_name" class="form-control" 
+                               placeholder="e.g., Frontend Team" required>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="module">
+                            <i class="fas fa-cube"></i> Module *
+                        </label>
+                        <input type="text" id="module" name="module" class="form-control" 
+                               placeholder="e.g., Authentication" required>
+                    </div>
+                </div>
+                
+                <div>
+                    <div class="form-group">
+                        <label for="owner">
+                            <i class="fas fa-user"></i> Owner *
+                        </label>
+                        <input type="email" id="owner" name="owner" class="form-control" 
+                               placeholder="john.doe@company.com" required>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="description">
+                            <i class="fas fa-comment-alt"></i> Error Description *
+                        </label>
+                        <textarea id="description" name="description" class="form-control" rows="4" 
+                                  placeholder="Describe the error in detail..." required></textarea>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label class="checkbox-label">
+                            <input type="checkbox" name="solution_possible"> 
+                            <span>Solution Already Known</span>
+                        </label>
+                        <small>Check if you know how to fix this issue</small>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="form-actions">
+                <button type="submit" class="btn btn-primary">
+                    <i class="fas fa-rocket"></i> Upload & Analyze
+                </button>
+                <a href="/" class="btn btn-outline">Cancel</a>
+            </div>
+        </form>
+    </div>
+    
+    <!-- Tips Card -->
+    <div class="card tips-card">
+        <h3><i class="fas fa-info-circle"></i> Upload Tips</h3>
+        <ul>
+            <li>AI analysis works best with detailed error logs including stack traces</li>
+            <li>Include timestamps and error codes for better pattern matching</li>
+            <li>The more context you provide, the better the AI suggestions will be</li>
+            <li>Similar logs are automatically linked for pattern analysis</li>
+        </ul>
+    </div>
+</div>
+
+<style>
+/* Enhanced Progress Styles */
+.progress-card {
+    text-align: center;
+    padding: 3rem;
+}
+
+.progress-steps {
+    display: flex;
+    justify-content: space-between;
+    margin: 2rem 0;
+    position: relative;
+}
+
+.progress-steps::before {
+    content: '';
+    position: absolute;
+    top: 25px;
+    left: 0;
+    right: 0;
+    height: 2px;
+    background: var(--gray-300);
+    z-index: 0;
+}
+
+.progress-step {
+    position: relative;
+    z-index: 1;
+    text-align: center;
+    flex: 1;
+}
+
+.step-icon {
+    width: 50px;
+    height: 50px;
+    border-radius: 50%;
+    background: var(--gray-300);
+    color: var(--gray-500);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin: 0 auto 0.5rem;
+    font-size: 1.25rem;
+    transition: all 0.3s ease;
+}
+
+.progress-step.active .step-icon {
+    background: var(--gradient-primary);
+    color: white;
+    transform: scale(1.1);
+}
+
+.progress-step.completed .step-icon {
+    background: var(--gradient-success);
+    color: white;
+}
+
+.step-title {
+    font-weight: 600;
+    font-size: 0.9rem;
+    color: var(--gray-700);
+}
+
+.step-status {
+    font-size: 0.8rem;
+    color: var(--gray-500);
+    margin-top: 0.25rem;
+}
+
+.progress-bar-container {
+    width: 100%;
+    height: 8px;
+    background: var(--gray-200);
+    border-radius: var(--radius-full);
+    overflow: hidden;
+    margin: 2rem 0;
+}
+
+.progress-bar {
+    height: 100%;
+    background: var(--gradient-primary);
+    transition: width 0.5s ease;
+}
+
+.progress-message {
+    font-size: 1.1rem;
+    color: var(--gray-600);
+    font-style: italic;
+}
+
+/* Success Results Styles */
+.success-card {
+    background: linear-gradient(135deg, rgba(16, 185, 129, 0.05) 0%, rgba(59, 130, 246, 0.05) 100%);
+    border: 2px solid var(--success);
+}
+
+.success-header {
+    text-align: center;
+    margin-bottom: 2rem;
+}
+
+.success-header i {
+    font-size: 3rem;
+    color: var(--success);
+    margin-bottom: 1rem;
+}
+
+.analysis-summary {
+    background: white;
+    padding: 1.5rem;
+    border-radius: var(--radius-md);
+    margin-bottom: 2rem;
+}
+
+.summary-text {
+    color: var(--gray-700);
+    line-height: 1.6;
+    margin-top: 1rem;
+}
+
+.results-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 1.5rem;
+    margin-bottom: 2rem;
+}
+
+.result-card {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    padding: 1rem;
+    background: white;
+    border-radius: var(--radius-md);
+}
+
+.result-icon {
+    width: 48px;
+    height: 48px;
+    border-radius: var(--radius-md);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.5rem;
+}
+
+.result-icon.error-pattern {
+    background: rgba(239, 68, 68, 0.1);
+    color: var(--danger);
+}
+
+.result-icon.severity {
+    background: rgba(245, 158, 11, 0.1);
+    color: var(--warning);
+}
+
+.result-icon.similar {
+    background: rgba(59, 130, 246, 0.1);
+    color: var(--info);
+}
+
+.result-icon.solutions {
+    background: rgba(16, 185, 129, 0.1);
+    color: var(--success);
+}
+
+.result-label {
+    font-size: 0.875rem;
+    color: var(--gray-500);
+}
+
+.result-value {
+    font-size: 1.25rem;
+    font-weight: 700;
+    color: var(--gray-800);
+}
+
+.solutions-section {
+    background: white;
+    padding: 1.5rem;
+    border-radius: var(--radius-md);
+    margin-bottom: 2rem;
+}
+
+.solutions-list {
+    margin-top: 1rem;
+    padding-left: 1.5rem;
+}
+
+.solutions-list li {
+    margin-bottom: 1rem;
+    line-height: 1.6;
+    color: var(--gray-700);
+}
+
+.file-preview {
+    margin-top: 0.5rem;
+    padding: 0.75rem;
+    background: var(--gray-50);
+    border-radius: var(--radius);
+    display: none;
+}
+
+.file-preview.active {
+    display: block;
+}
+
+/* Animation */
+@keyframes pulse {
+    0% { transform: scale(1); }
+    50% { transform: scale(1.05); }
+    100% { transform: scale(1); }
+}
+
+.progress-step.active .step-icon {
+    animation: pulse 2s infinite;
+}
+</style>
+
+<script>
+let uploadedCrId = null;
+
+// File preview
+document.getElementById('file').addEventListener('change', function(e) {
+    const file = e.target.files[0];
+    const preview = document.getElementById('file-preview');
+    
+    if (file) {
+        preview.innerHTML = `
+            <i class="fas fa-file"></i>
+            <strong>${file.name}</strong>
+            <span>(${(file.size / 1024 / 1024).toFixed(2)} MB)</span>
+        `;
+        preview.classList.add('active');
+    } else {
+        preview.classList.remove('active');
+    }
+});
+
+// Handle form submission with progress tracking
+async function handleSubmit(event) {
+    event.preventDefault();
+    
+    const form = event.target;
+    const formData = new FormData(form);
+    
+    // Hide form, show progress
+    document.getElementById('upload-form-section').style.display = 'none';
+    document.getElementById('progress-section').style.display = 'block';
+    
+    // Start progress animation
+    updateProgress(1, 'Uploading file to server...');
+    
+    try {
+        // Step 1: Upload file
+        const uploadResponse = await fetch('/upload', {
+            method: 'POST',
+            body: formData
+        });
+        
+        if (!uploadResponse.ok) {
+            throw new Error('Upload failed');
+        }
+        
+        // Extract CR_ID from response or redirect
+        const responseUrl = uploadResponse.url;
+        const crIdMatch = responseUrl.match(/report\/([^\/\?]+)/);
+        if (crIdMatch) {
+            uploadedCrId = crIdMatch[1];
+        }
+        
+        // Step 2: Database save
+        updateProgress(2, 'Saving to database...');
+        await sleep(1000);
+        
+        // Step 3: AI Analysis
+        updateProgress(3, 'Running AI analysis...');
+        
+        if (uploadedCrId) {
+            // Check AI analysis status
+            let analysisComplete = false;
+            let attempts = 0;
+            const maxAttempts = 30; // 30 seconds timeout
+            
+            while (!analysisComplete && attempts < maxAttempts) {
+                const statusResponse = await fetch(`/api/v1/ai/status/${uploadedCrId}`);
+                const statusData = await statusResponse.json();
+                
+                if (statusData.success && statusData.analysis) {
+                    const status = statusData.analysis.Status;
+                    if (status === 'completed') {
+                        analysisComplete = true;
+                        displayResults(statusData.analysis);
+                    } else if (status === 'failed') {
+                        throw new Error('AI analysis failed');
+                    }
+                }
+                
+                if (!analysisComplete) {
+                    await sleep(1000);
+                    attempts++;
+                }
+            }
+            
+            if (!analysisComplete) {
+                // AI analysis taking too long, show partial results
+                displayPartialResults();
+            }
+        }
+        
+        // Step 4: Finding similar logs
+        updateProgress(4, 'Finding similar logs...');
+        await sleep(1000);
+        
+        // Step 5: Generating report
+        updateProgress(5, 'Generating report...');
+        await sleep(1000);
+        
+        // Complete
+        showResults();
+        
+    } catch (error) {
+        console.error('Upload error:', error);
+        alert('An error occurred during upload. Please try again.');
+        resetForm();
+    }
+}
+
+function updateProgress(step, message) {
+    // Update progress bar
+    const progressBar = document.getElementById('main-progress');
+    const progressPercent = (step / 5) * 100;
+    progressBar.style.width = progressPercent + '%';
+    
+    // Update status message
+    document.getElementById('status-message').textContent = message;
+    
+    // Update step states
+    for (let i = 1; i <= 5; i++) {
+        const stepElement = document.getElementById(`step-${i}`);
+        const statusElement = stepElement.querySelector('.step-status');
+        
+        if (i < step) {
+            stepElement.classList.add('completed');
+            stepElement.classList.remove('active');
+            statusElement.textContent = 'Complete';
+        } else if (i === step) {
+            stepElement.classList.add('active');
+            stepElement.classList.remove('completed');
+            statusElement.textContent = 'In Progress...';
+        } else {
+            stepElement.classList.remove('active', 'completed');
+            statusElement.textContent = 'Waiting...';
+        }
+    }
+}
+
+function displayResults(analysis) {
+    // Display AI summary
+    if (analysis.Summary) {
+        document.getElementById('ai-summary-text').textContent = analysis.Summary;
+    }
+    
+    // Display error pattern
+    if (analysis.ErrorPattern) {
+        document.getElementById('error-pattern').textContent = analysis.ErrorPattern;
+    }
+    
+    // Display severity
+    if (analysis.EstimatedSeverity) {
+        const severityElement = document.getElementById('severity-level');
+        severityElement.textContent = analysis.EstimatedSeverity.toUpperCase();
+        severityElement.className = `severity-badge severity-${analysis.EstimatedSeverity}`;
+    }
+    
+    // Display solutions
+    if (analysis.SuggestedSolutions && analysis.SuggestedSolutions.length > 0) {
+        const solutionsList = document.getElementById('solutions-list');
+        solutionsList.innerHTML = '';
+        
+        document.getElementById('solutions-count').textContent = analysis.SuggestedSolutions.length;
+        
+        analysis.SuggestedSolutions.forEach(solution => {
+            const li = document.createElement('li');
+            if (typeof solution === 'object') {
+                li.innerHTML = `<strong>${solution.description || solution}</strong>`;
+                if (solution.steps) {
+                    const stepsList = document.createElement('ul');
+                    solution.steps.forEach(step => {
+                        const stepLi = document.createElement('li');
+                        stepLi.textContent = step;
+                        stepsList.appendChild(stepLi);
+                    });
+                    li.appendChild(stepsList);
+                }
+            } else {
+                li.textContent = solution;
+            }
+            solutionsList.appendChild(li);
+        });
+    }
+}
+
+function displayPartialResults() {
+    document.getElementById('ai-summary-text').textContent = 
+        'AI analysis is still processing. The full analysis will be available in the report.';
+    document.getElementById('solutions-count').textContent = 'Processing...';
+}
+
+function showResults() {
+    // Hide progress, show results
+    document.getElementById('progress-section').style.display = 'none';
+    document.getElementById('results-section').style.display = 'block';
+    
+    // Set report link
+    if (uploadedCrId) {
+        document.getElementById('view-full-report').href = `/report/${uploadedCrId}`;
+    }
+}
+
+function resetForm() {
+    document.getElementById('upload-form-section').style.display = 'block';
+    document.getElementById('progress-section').style.display = 'none';
+    document.getElementById('results-section').style.display = 'none';
+    document.getElementById('upload-form').reset();
+    document.getElementById('file-preview').classList.remove('active');
+}
+
+function sleep(ms) {
+    return new Promise(resolve => setTimeout(resolve, ms));
+}
+</script>
+{% endblock %}
