@@ -4,11 +4,17 @@ from dotenv import load_dotenv
 # Load environment variables from .env file
 load_dotenv()
 
+# Compute project root (one level up from this config directory)
+PROJECT_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), os.pardir))
+DEFAULT_SQLITE_PATH = os.path.join(PROJECT_ROOT, 'bugseek.db')
+# Ensure Windows paths are normalized for SQLAlchemy URI
+DEFAULT_SQLITE_URI = f"sqlite:///{DEFAULT_SQLITE_PATH.replace('\\\\', '/').replace('\\', '/')}"
+
 class Config:
     """Base configuration class."""
     
-    # Database Configuration
-    SQLALCHEMY_DATABASE_URI = os.getenv('DATABASE_URL', 'sqlite:///bugseek.db')
+    # Database Configuration - prefer env var, else absolute sqlite path in project root
+    SQLALCHEMY_DATABASE_URI = os.getenv('DATABASE_URL', DEFAULT_SQLITE_URI)
     SQLALCHEMY_TRACK_MODIFICATIONS = os.getenv('SQLALCHEMY_TRACK_MODIFICATIONS', 'False').lower() == 'true'
     
     # Flask Configuration

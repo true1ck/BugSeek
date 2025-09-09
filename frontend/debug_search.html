@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Search Debug</title>
+    <script>
+    document.addEventListener('DOMContentLoaded', function() {
+        console.log('DOM loaded');
+        
+        // Check if we have server-side results to display
+        const serverResults = document.getElementById('serverResults');
+        console.log('serverResults element:', serverResults);
+        
+        if (serverResults) {
+            console.log('serverResults content:', serverResults.textContent);
+            try {
+                const results = JSON.parse(serverResults.textContent);
+                console.log('Parsed results:', results);
+                console.log('Number of results:', results.length);
+                displaySearchResults(results);
+                serverResults.style.display = 'none'; // Hide the JSON data
+            } catch (e) {
+                console.error('Error parsing server results:', e);
+            }
+        } else {
+            console.log('No serverResults element found');
+        }
+    });
+    
+    function displaySearchResults(results) {
+        console.log('displaySearchResults called with:', results);
+        const resultsContainer = document.getElementById('resultsContainer');
+        console.log('resultsContainer:', resultsContainer);
+        
+        if (!resultsContainer) {
+            console.error('resultsContainer not found!');
+            return;
+        }
+        
+        if (results.length === 0) {
+            resultsContainer.innerHTML = '<p>No results found</p>';
+            return;
+        }
+        
+        // Simple display
+        let html = '<h3>Search Results (' + results.length + ' found)</h3>';
+        html += '<ul>';
+        results.forEach(function(log) {
+            html += '<li>';
+            html += 'ID: ' + (log.Cr_ID || 'N/A') + ' - ';
+            html += 'Team: ' + (log.TeamName || 'N/A') + ' - ';
+            html += 'Module: ' + (log.Module || 'N/A') + ' - ';
+            html += 'Owner: ' + (log.Owner || 'N/A');
+            html += '</li>';
+        });
+        html += '</ul>';
+        
+        resultsContainer.innerHTML = html;
+        document.getElementById('searchResults').style.display = 'block';
+        console.log('Results displayed');
+    }
+    </script>
+</head>
+<body>
+    <h1>Search Debug Test</h1>
+    
+    <div id="searchResults" style="display: none;">
+        <div id="resultsContainer">
+            <!-- Results will be populated here -->
+        </div>
+    </div>
+    
+    <!-- Simulate server results with sample data -->
+    <div id="serverResults" style="display: none;">
+    [{"Archived": false, "Cr_ID": "70b1b777-a8d5-4498-ae8c-8e39e456bb68", "CreatedAt": "2025-09-08T13:29:21.035872", "Environment": "unknown", "ErrorName": "PAYMENT_GATEWAY_ERROR", "FileCount": 0, "FileSize": 1024, "LogFileName": "payment_error.log", "Module": "Payment", "Owner": "mike.wilson@company.com", "Severity": "high", "SolutionPossible": true, "TeamName": "API"}]
+    </div>
+</body>
+</html>

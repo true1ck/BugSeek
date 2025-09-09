@@ -16,6 +16,20 @@ from sqlalchemy.exc import SQLAlchemyError
 # Load environment variables
 load_dotenv()
 
+# Build absolute default path to use Flask instance directory (same as the app)
+PROJECT_ROOT = os.path.abspath(os.path.dirname(__file__))
+INSTANCE_DIR = os.path.join(PROJECT_ROOT, 'instance')
+DEFAULT_SQLITE_PATH = os.path.join(INSTANCE_DIR, 'bugseek.db')
+# Normalize Windows paths for SQLite URI
+if os.name == 'nt':  # Windows
+    DEFAULT_SQLITE_URI = f"sqlite:///{DEFAULT_SQLITE_PATH.replace(chr(92), '/')}"
+else:
+    DEFAULT_SQLITE_URI = f"sqlite:///{DEFAULT_SQLITE_PATH}"
+
+# Ensure instance directory exists
+if not os.path.exists(INSTANCE_DIR):
+    os.makedirs(INSTANCE_DIR)
+
 class DatabaseConnection:
     """Database connection manager with support for multiple database types."""
     
@@ -25,7 +39,13 @@ class DatabaseConnection:
         Args:
             database_url: Optional database URL. If None, loads from environment.
         """
-        self.database_url = database_url or os.getenv('DATABASE_URL', 'sqlite:///bugseek.db')
+        # Force use of instance database if no explicit URL provided
+        if database_url:
+            self.database_url = database_url
+        elif os.getenv('DATABASE_URL'):
+            self.database_url = os.getenv('DATABASE_URL')
+        else:
+            self.database_url = DEFAULT_SQLITE_URI
         self.engine: Optional[Engine] = None
         self.session_factory = None
         self._metadata = None
@@ -216,6 +236,8 @@ if __name__ == "__main__":
     # Quick test of database connection
     print("🔍 Testing Database Connection...")
     db = DatabaseConnection()
+    
+    print(f"🔗 Using database URL: {db.database_url}")
     
     if db.connect():
         print("✅ Database connection successful!")

@@ -174,12 +174,15 @@
 </div>
 
 <!-- Search Results -->
-<div id="searchResults" class="search-results" style="display: none;">
+<div id="searchResults" class="search-results" {% if not results %}style="display: none;"{% endif %}>
     <div class="card">
         <div class="card-header">
             <h3>
                 <i class="fas fa-list"></i>
                 Search Results
+                {% if results %}
+                <span class="results-count">({{ results|length }} found)</span>
+                {% endif %}
             </h3>
             <div class="result-controls">
                 <div class="sort-options">
@@ -203,7 +206,12 @@
             </div>
         </div>
         <div id="resultsContainer">
-            <!-- Results will be populated here via JavaScript -->
+            {% if results %}
+                <div id="serverResults">{{ results|tojson }}</div>
+                <!-- Server-side results will be displayed by JavaScript -->
+            {% else %}
+                <!-- Results will be populated here via JavaScript -->
+            {% endif %}
         </div>
     </div>
 </div>
@@ -492,13 +500,26 @@ document.addEventListener('DOMContentLoaded', function() {
     const resultsContainer = document.getElementById('searchResults');
     let currentViewMode = 'list';
     
-    // Handle form submission
+    // Check if we have server-side results to display
+    const serverResults = document.getElementById('serverResults');
+    if (serverResults) {
+        try {
+            const results = JSON.parse(serverResults.textContent);
+            displaySearchResults(results);
+            serverResults.style.display = 'none'; // Hide the JSON data
+        } catch (e) {
+            console.error('Error parsing server results:', e);
+        }
+    }
+    
+    // Handle form submission - use regular form submit for server-side handling
     searchForm.addEventListener('submit', function(e) {
-        e.preventDefault();
-        performSearch();
+        // Allow normal form submission to server
+        // The server will handle the search and redirect back with results
+        return true;
     });
     
-    // Auto-search on filter change (with debounce)
+    // Auto-search on filter change (with debounce) - use AJAX for real-time
     const searchInput = document.getElementById('search');
     let searchTimeout;
     
@@ -506,23 +527,23 @@ document.addEventListener('DOMContentLoaded', function() {
         clearTimeout(searchTimeout);
         searchTimeout = setTimeout(() => {
             if (searchInput.value.length >= 3 || searchInput.value.length === 0) {
-                performSearch();
+                performSearch(true); // Use AJAX for real-time search
             }
         }, 500);
     });
     
-    // Filter change handlers
+    // Filter change handlers - use AJAX for real-time updates
     const filterElements = searchForm.querySelectorAll('select, input[type="date"], input[type="number"]');
     filterElements.forEach(element => {
         element.addEventListener('change', function() {
             if (hasAnyFilters()) {
-                performSearch();
+                performSearch(true); // Use AJAX for real-time search
             }
         });
     });
 });
 
-function performSearch() {
+function performSearch(useAjax = false) {
     const formData = new FormData(document.getElementById('searchForm'));
     const searchParams = new URLSearchParams();
     
@@ -538,12 +559,31 @@ function performSearch() {
         return;
     }
     
-    showLoadingState();
-    
-    // Simulate API call (replace with actual API endpoint)
-    setTimeout(() => {
-        displaySearchResults(generateMockResults());
-    }, 1000);
+    if (useAjax) {
+        // AJAX search for real-time results
+        showLoadingState();
+        
+        // Call backend API directly via frontend proxy
+        fetch(`http://localhost:5000/api/v1/logs/?${searchParams.toString()}`)
+            .then(resp => resp.json())
+            .then(result => {
+                if (result.success) {
+                    const payload = result.data || {};
+                    const logs = payload.logs || [];
+                    displaySearchResults(logs);
+                } else {
+                    displaySearchResults([]);
+                    console.error('Search failed:', result.message);
+                }
+            })
+            .catch(err => {
+                console.error('Search error:', err);
+                displaySearchResults([]);
+            });
+    } else {
+        // Use form submission to server
+        document.getElementById('searchForm').submit();
+    }
 }
 
 function hasAnyFilters() {
@@ -591,28 +631,31 @@ function displaySearchResults(results) {
 
 function displayGridView(results) {
     const resultsContainer = document.getElementById('resultsContainer');
-    const gridHtml = results.map(log => `
-        <div class="result-card">
-            <div class="result-card-header">
-                <div class="result-card-title">Log Report #${log.Cr_ID.slice(0,8)}</div>
-                <div class="result-card-status">
-                    <span class="status-badge status-${log.SolutionPossible ? 'success' : 'danger'}">
-                        ${log.SolutionPossible ? '✅' : '❌'}
-                    </span>
+    const gridHtml = results.map(log => {
+        const crIdShort = (log.Cr_ID || log.cr_id || 'unknown').toString().slice(0,8);
+        return `
+            <div class="result-card">
+                <div class="result-card-header">
+                    <div class="result-card-title">Log Report #${crIdShort}</div>
+                    <div class="result-card-status">
+                        <span class="status-badge status-${log.SolutionPossible ? 'success' : 'danger'}">
+                            ${log.SolutionPossible ? '✅' : '❌'}
+                        </span>
+                    </div>
+                </div>
+                <div class="result-card-meta">
+                    <div><strong>Team:</strong> ${log.TeamName || 'N/A'}</div>
+                    <div><strong>Module:</strong> ${log.Module || 'N/A'}</div>
+                    <div><strong>Owner:</strong> ${log.Owner || 'N/A'}</div>
+                    <div><strong>Created:</strong> ${new Date(log.CreatedAt || log.created_at).toLocaleDateString()}</div>
+                </div>
+                <div class="result-card-actions">
+                    <a href="/report/${log.Cr_ID || log.cr_id}" class="btn btn-primary btn-sm">View Report</a>
+                    <button class="btn btn-outline btn-sm" onclick="shareLog('${log.Cr_ID || log.cr_id}')">Share</button>
                 </div>
             </div>
-            <div class="result-card-meta">
-                <div><strong>Team:</strong> ${log.TeamName}</div>
-                <div><strong>Module:</strong> ${log.Module}</div>
-                <div><strong>Owner:</strong> ${log.Owner}</div>
-                <div><strong>Created:</strong> ${log.CreatedAt}</div>
-            </div>
-            <div class="result-card-actions">
-                <a href="/report/${log.Cr_ID}" class="btn btn-primary btn-sm">View Report</a>
-                <button class="btn btn-outline btn-sm" onclick="shareLog('${log.Cr_ID}')">Share</button>
-            </div>
-        </div>
-    `).join('');
+        `;
+    }).join('');
     
     resultsContainer.innerHTML = `<div class="results-grid">${gridHtml}</div>`;
 }
@@ -635,17 +678,17 @@ function displayListView(results) {
                 <tbody>
                     ${results.map(log => `
                         <tr>
-                            <td>${log.TeamName}</td>
-                            <td>${log.Module}</td>
-                            <td>${log.Owner}</td>
+                            <td>${log.TeamName || 'N/A'}</td>
+                            <td>${log.Module || 'N/A'}</td>
+                            <td>${log.Owner || 'N/A'}</td>
                             <td>
                                 <span class="status-badge status-${log.SolutionPossible ? 'success' : 'danger'}">
                                     ${log.SolutionPossible ? '✅ Solution Available' : '❌ No Solution'}
                                 </span>
                             </td>
-                            <td>${log.CreatedAt}</td>
+                            <td>${new Date(log.CreatedAt || log.created_at).toLocaleDateString()}</td>
                             <td>
-                                <a href="/report/${log.Cr_ID}" class="btn btn-primary btn-sm">View Report</a>
+                                <a href="/report/${log.Cr_ID || log.cr_id}" class="btn btn-primary btn-sm">View Report</a>
                             </td>
                         </tr>
                     `).join('')}

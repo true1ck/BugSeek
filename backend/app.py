@@ -1,4 +1,4 @@
-from flask import Flask, request, jsonify, redirect
+from flask import Flask, request, jsonify, redirect, send_file, abort
 from flask_cors import CORS
 from flask_restx import Api, Resource, fields, reqparse
 from werkzeug.datastructures import FileStorage
@@ -165,9 +165,13 @@ def create_app(config_name='development'):
             try:
                 args = upload_parser.parse_args()
                 
-                # Save uploaded file
+                # Generate CR_ID first
+                cr_id = str(__import__('uuid').uuid4())
+                
+                # Save uploaded file with new system
                 file_result = FileService.save_uploaded_file(
                     args['file'], 
+                    cr_id,
                     app.config['UPLOAD_FOLDER']
                 )
                 
@@ -176,19 +180,38 @@ def create_app(config_name='development'):
                 
                 # Prepare data for error log creation
                 log_data = {
+                    'Cr_ID': cr_id,
                     'TeamName': args['TeamName'],
                     'Module': args['Module'],
                     'Description': args['Description'],
                     'Owner': args['Owner'],
-                    'ErrorName': 'Auto-generated',  # Default value since ErrorName is kept in DB only
-                    'LogFileName': file_result['filename'],
+                    'LogFileName': file_result['file_record'].OriginalFileName,
                     'SolutionPossible': args.get('SolutionPossible', False)
                 }
+                
+                # Detect severity and environment from description/module (basic heuristics)
+                severity = 'medium'
+                if any(word in args['Description'].lower() for word in ['critical', 'fatal', 'crash']):
+                    severity = 'critical'
+                elif any(word in args['Description'].lower() for word in ['warning', 'warn', 'minor']):
+                    severity = 'low'
+                elif any(word in args['Description'].lower() for word in ['error', 'exception', 'fail']):
+                    severity = 'high'
+                
+                environment = 'unknown'
+                if any(word in args['Description'].lower() for word in ['prod', 'production']):
+                    environment = 'prod'
+                elif any(word in args['Description'].lower() for word in ['dev', 'development']):
+                    environment = 'dev'
+                elif any(word in args['Description'].lower() for word in ['test', 'staging']):
+                    environment = 'staging'
                 
                 # Create error log entry
                 result = ErrorLogService.create_error_log(
                     log_data, 
-                    file_result['content']
+                    file_result['content_preview'],
+                    severity,
+                    environment
                 )
                 
                 if result['success']:
@@ -319,6 +342,62 @@ def create_app(config_name='development'):
             except Exception as e:
                 return {'success': False, 'message': str(e)}, 500
     
+    @logs_ns.route('/<string:cr_id>/file')
+    class LogFileDownload(Resource):
+        @logs_ns.doc('download_log_file',
+                    description='Download the original log file for a specific error log',
+                    params={'cr_id': 'Unique Change Request ID for the error log'})
+        @logs_ns.response(200, 'File downloaded successfully')
+        @logs_ns.response(404, 'File not found', error_response_model)
+        @logs_ns.response(500, 'Internal server error', error_response_model)
+        def get(self, cr_id):
+            """Download the original log file"""
+            try:
+                file_result = FileService.get_file_by_cr_id(cr_id)
+                
+                if not file_result['success']:
+                    return {'success': False, 'message': file_result['message']}, 404
+                
+                file_record = file_result['file_record']
+                
+                # Check if file exists on disk
+                if not os.path.exists(file_record.StoredPath):
+                    return {'success': False, 'message': 'File not found on disk'}, 404
+                
+                # Send file with proper headers
+                return send_file(
+                    file_record.StoredPath,
+                    as_attachment=True,
+                    download_name=file_record.OriginalFileName,
+                    mimetype=file_record.MimeType or 'application/octet-stream'
+                )
+                
+            except Exception as e:
+                return {'success': False, 'message': str(e)}, 500
+    
+    @logs_ns.route('/<string:cr_id>/file/info')
+    class LogFileInfo(Resource):
+        @logs_ns.doc('get_log_file_info',
+                    description='Get file metadata for a specific error log',
+                    params={'cr_id': 'Unique Change Request ID for the error log'})
+        @logs_ns.response(200, 'File info retrieved successfully', success_response_model)
+        @logs_ns.response(404, 'File not found', error_response_model)
+        def get(self, cr_id):
+            """Get file metadata and information"""
+            try:
+                file_result = FileService.get_file_by_cr_id(cr_id)
+                
+                if not file_result['success']:
+                    return {'success': False, 'message': file_result['message']}, 404
+                
+                return {
+                    'success': True,
+                    'data': file_result['file_record'].to_dict()
+                }, 200
+                
+            except Exception as e:
+                return {'success': False, 'message': str(e)}, 500
+    
     @automation_ns.route('/validate')
     class AutomationValidate(Resource):
         @automation_ns.expect(error_log_model)
@@ -373,6 +452,18 @@ def create_app(config_name='development'):
     @app.route('/api/v1/statistics')
     def get_statistics():
         """Get system statistics"""
+        try:
+            result = ErrorLogService.get_statistics()
+            if result['success']:
+                return jsonify(result), 200
+            else:
+                return jsonify({'success': False, 'message': result['message']}), 400
+        except Exception as e:
+            return jsonify({'success': False, 'message': str(e)}), 500
+    
+    @app.route('/api/v1/analytics')
+    def get_analytics():
+        """Get comprehensive analytics data for dashboard"""
         try:
             result = ErrorLogService.get_statistics()
             if result['success']:

@@ -131,15 +131,59 @@ def view_report(cr_id):
         flash(f'Report not found: {result.get("message", "Unknown error")}', 'error')
         return redirect(url_for('logs_list'))
 
-@app.route('/search')
+@app.route('/search', methods=['GET', 'POST'])
 def search_page():
-    """Advanced search page."""
-    return render_template('search.html')
+    """Advanced search page with search functionality."""
+    if request.method == 'POST':
+        # Process search form submission
+        # Redirect to GET with query parameters to keep URL clean
+        search_params = {}
+        
+        # Collect form data
+        for key in ['search', 'team', 'module', 'owner', 'date_from', 'date_to', 'solution_status', 'file_size_min', 'file_size_max']:
+            value = request.form.get(key)
+            if value and value.strip():
+                search_params[key] = value.strip()
+        
+        # Build query string
+        query_string = '&'.join(f'{k}={v}' for k, v in search_params.items())
+        return redirect(f'/search?{query_string}')
+    
+    # GET request - show search page with results if there are search params
+    search_params = dict(request.args)
+    results = []
+    
+    if search_params:
+        # Map form parameters to API parameters
+        api_filters = {}
+        if search_params.get('search'):
+            api_filters['search'] = search_params['search']
+        if search_params.get('team'):
+            api_filters['TeamName'] = search_params['team']
+        if search_params.get('module'):
+            api_filters['Module'] = search_params['module']
+        if search_params.get('owner'):
+            api_filters['Owner'] = search_params['owner']
+        if search_params.get('solution_status'):
+            api_filters['SolutionPossible'] = search_params['solution_status']
+        
+        # Make API call to get search results
+        result, status_code = make_api_request('/logs/', 'GET', data=api_filters)
+        if status_code == 200 and result.get('success'):
+            results = result.get('data', {}).get('logs', [])
+    
+    return render_template('search.html', results=results, search_params=search_params)
 
 @app.route('/analytics')
 def analytics_page():
     """Analytics dashboard page."""
     return render_template('analytics.html')
+
+@app.route('/api/v1/analytics')
+def proxy_analytics():
+    """Proxy analytics API call to backend."""
+    result, status_code = make_api_request('/analytics')
+    return jsonify(result), status_code
 
 @app.route('/docs')
 def documentation_page():
