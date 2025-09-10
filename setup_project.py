@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+# -*- coding: utf-8 -*-
 """
 BugSeek Project Setup Script
 Comprehensive setup for new users who clone the project
@@ -13,13 +14,19 @@ import subprocess
 from datetime import datetime, timedelta
 from pathlib import Path
 
+# Set UTF-8 encoding for Windows
+if sys.platform.startswith('win'):
+    import codecs
+    sys.stdout = codecs.getwriter('utf-8')(sys.stdout.detach())
+    sys.stderr = codecs.getwriter('utf-8')(sys.stderr.detach())
+
 def check_python_version():
     """Check if Python version is compatible."""
     if sys.version_info < (3, 8):
-        print("❌ Python 3.8 or higher is required!")
+        print("[ERROR] Python 3.8 or higher is required!")
         print(f"   Current version: {sys.version}")
         return False
-    print(f"✅ Python version: {sys.version.split()[0]}")
+    print(f"[OK] Python version: {sys.version.split()[0]}")
     return True
 
 def create_virtual_environment():
@@ -27,13 +34,13 @@ def create_virtual_environment():
     venv_path = Path("venv")
     
     if venv_path.exists():
-        print("✅ Virtual environment already exists")
+        print("[OK] Virtual environment already exists")
         return True
     
     try:
-        print("🔄 Creating virtual environment...")
+        print("[INFO] Creating virtual environment...")
         subprocess.run([sys.executable, "-m", "venv", "venv"], check=True)
-        print("✅ Virtual environment created successfully")
+        print("[OK] Virtual environment created successfully")
         
         # Provide activation instructions
         if os.name == 'nt':  # Windows
@@ -43,17 +50,17 @@ def create_virtual_environment():
             activate_script = "source venv/bin/activate"
             pip_path = "venv/bin/pip"
             
-        print(f"\n📋 To activate virtual environment:")
+        print(f"\n[NOTE] To activate virtual environment:")
         print(f"   {activate_script}")
         
         return True
     except subprocess.CalledProcessError as e:
-        print(f"❌ Failed to create virtual environment: {e}")
+        print(f"[ERROR] Failed to create virtual environment: {e}")
         return False
 
 def install_dependencies():
     """Install project dependencies."""
-    print("🔄 Installing dependencies...")
+    print("[INFO] Installing dependencies...")
     
     # Determine pip path
     if os.name == 'nt':  # Windows
@@ -66,17 +73,17 @@ def install_dependencies():
     try:
         # Check if requirements.txt exists
         if not Path("requirements.txt").exists():
-            print("❌ requirements.txt not found!")
+            print("[ERROR] requirements.txt not found!")
             return False
             
         # Install dependencies
         subprocess.run([python_path, "-m", "pip", "install", "--upgrade", "pip"], check=True)
         subprocess.run([python_path, "-m", "pip", "install", "-r", "requirements.txt"], check=True)
-        print("✅ Dependencies installed successfully")
+        print("[OK] Dependencies installed successfully")
         return True
         
     except subprocess.CalledProcessError as e:
-        print(f"❌ Failed to install dependencies: {e}")
+        print(f"[ERROR] Failed to install dependencies: {e}")
         return False
 
 def setup_environment_file():
@@ -86,7 +93,7 @@ def setup_environment_file():
     example_path = Path(".env.example")
     
     if env_path.exists():
-        print("✅ .env file already exists")
+        print("[OK] .env file already exists")
         return True
     
     # Try to copy from template or example
@@ -96,15 +103,15 @@ def setup_environment_file():
     elif example_path.exists():
         source_file = example_path
     else:
-        print("❌ No .env template found!")
+        print("[ERROR] No .env template found!")
         return False
     
     try:
         shutil.copy(source_file, env_path)
-        print(f"✅ Created .env file from {source_file}")
+        print(f"[OK] Created .env file from {source_file}")
         
         # Update database URL to use absolute path
-        with open(env_path, 'r') as f:
+        with open(env_path, 'r', encoding='utf-8') as f:
             content = f.read()
         
         # Update database URL to use absolute path
@@ -114,14 +121,14 @@ def setup_environment_file():
         
         content = content.replace("DATABASE_URL=sqlite:///bugseek.db", f"DATABASE_URL={db_uri}")
         
-        with open(env_path, 'w') as f:
+        with open(env_path, 'w', encoding='utf-8') as f:
             f.write(content)
         
-        print(f"📋 Database configured to: {db_uri}")
+        print(f"[NOTE] Database configured to: {db_uri}")
         return True
         
     except Exception as e:
-        print(f"❌ Failed to create .env file: {e}")
+        print(f"[ERROR] Failed to create .env file: {e}")
         return False
 
 def create_directories():
@@ -137,13 +144,13 @@ def create_directories():
         dir_path = Path(directory)
         if not dir_path.exists():
             dir_path.mkdir(parents=True, exist_ok=True)
-            print(f"✅ Created directory: {directory}")
+            print(f"[OK] Created directory: {directory}")
         else:
-            print(f"✅ Directory exists: {directory}")
+            print(f"[OK] Directory exists: {directory}")
 
 def initialize_database():
     """Initialize database with proper schema."""
-    print("\n🔄 Initializing database...")
+    print("\n[INFO] Initializing database...")
     
     # Add project root to path
     sys.path.insert(0, str(Path.cwd()))
@@ -161,7 +168,7 @@ def initialize_database():
         db.init_app(app)
         
         with app.app_context():
-            print("📋 Creating database tables...")
+            print("[INFO] Creating database tables...")
             create_tables(app)
             
             # Verify tables were created
@@ -170,14 +177,14 @@ def initialize_database():
             tables = inspector.get_table_names()
             
             if tables:
-                print(f"✅ Created {len(tables)} table(s): {', '.join(tables)}")
+                print(f"[OK] Created {len(tables)} table(s): {', '.join(tables)}")
                 return app
             else:
-                print("❌ No tables were created!")
+                print("[ERROR] No tables were created!")
                 return None
                 
     except Exception as e:
-        print(f"❌ Database initialization failed: {e}")
+        print(f"[ERROR] Database initialization failed: {e}")
         import traceback
         traceback.print_exc()
         return None
@@ -185,12 +192,12 @@ def initialize_database():
 def migrate_ai_tables():
     """Run AI tables migration if available."""
     if Path("migrate_ai_tables.py").exists():
-        print("🔄 Running AI tables migration...")
+        print("[INFO] Running AI tables migration...")
         try:
             subprocess.run([sys.executable, "migrate_ai_tables.py"], check=True)
-            print("✅ AI tables migration completed")
+            print("[OK] AI tables migration completed")
         except subprocess.CalledProcessError as e:
-            print(f"⚠️  AI tables migration failed: {e}")
+            print(f"[WARN] AI tables migration failed: {e}")
             print("   This is optional - basic functionality will still work")
 
 def create_comprehensive_sample_data():
@@ -384,7 +391,7 @@ def create_comprehensive_sample_data():
 
 def populate_sample_data(app):
     """Populate database with comprehensive sample data."""
-    print("\n🔄 Adding sample data to database...")
+    print("\n[INFO] Adding sample data to database...")
     
     sample_data = create_comprehensive_sample_data()
     
@@ -419,10 +426,10 @@ def populate_sample_data(app):
             
             db.session.commit()
             
-            print(f"✅ Successfully added {added_count} sample error logs!")
+            print(f"[OK] Successfully added {added_count} sample error logs!")
             
             # Show summary
-            print("\n📊 Database Summary:")
+            print("\n[INFO] Database Summary:")
             total_logs = ErrorLog.query.count()
             teams = db.session.query(ErrorLog.TeamName).distinct().count()
             modules = db.session.query(ErrorLog.Module).distinct().count()
@@ -437,14 +444,14 @@ def populate_sample_data(app):
             return True
             
     except Exception as e:
-        print(f"❌ Error adding sample data: {e}")
+        print(f"[ERROR] Error adding sample data: {e}")
         import traceback
         traceback.print_exc()
         return False
 
 def test_database_connection():
     """Test database connection and display summary."""
-    print("\n🔍 Testing database connection...")
+    print("\n[INFO] Testing database connection...")
     
     try:
         from flask import Flask
@@ -458,7 +465,7 @@ def test_database_connection():
         with app.app_context():
             # Test basic query
             total_logs = ErrorLog.query.count()
-            print(f"✅ Database connection successful!")
+            print(f"[OK] Database connection successful!")
             print(f"📋 Found {total_logs} error logs in database")
             
             if total_logs > 0:
@@ -480,13 +487,13 @@ def test_database_connection():
             return True
             
     except Exception as e:
-        print(f"❌ Database connection failed: {e}")
+        print(f"[ERROR] Database connection failed: {e}")
         return False
 
 def create_startup_instructions():
     """Create a file with startup instructions."""
     instructions = """
-# BugSeek Setup Complete! 🎉
+# BugSeek Setup Complete!
 
 Your BugSeek project is now fully set up with sample data.
 
@@ -529,17 +536,17 @@ Your database now contains 10 realistic error logs with:
 - Review WARP.md for development guidance  
 - Check AI_FEATURES.md for AI integration setup
 
-Happy debugging! 🐛🔍
+Happy debugging!
 """
     
-    with open("SETUP_COMPLETE.md", "w") as f:
+    with open("SETUP_COMPLETE.md", "w", encoding='utf-8') as f:
         f.write(instructions)
     
-    print("📋 Created SETUP_COMPLETE.md with startup instructions")
+    print("[OK] Created SETUP_COMPLETE.md with startup instructions")
 
 def main():
     """Main setup function."""
-    print("🚀 BugSeek Project Setup")
+    print("BugSeek Project Setup")
     print("=" * 50)
     print("Setting up BugSeek for first-time use...")
     print()
@@ -552,13 +559,13 @@ def main():
     create_venv = input("Create virtual environment? [Y/n]: ").strip().lower()
     if create_venv in ['', 'y', 'yes']:
         if not create_virtual_environment():
-            print("⚠️  Virtual environment creation failed, continuing without it...")
+            print("[WARN] Virtual environment creation failed, continuing without it...")
     
     # Step 3: Install dependencies
     install_deps = input("Install dependencies? [Y/n]: ").strip().lower()
     if install_deps in ['', 'y', 'yes']:
         if not install_dependencies():
-            print("❌ Dependency installation failed!")
+            print("[ERROR] Dependency installation failed!")
             return False
     
     # Step 4: Setup environment file
@@ -587,8 +594,8 @@ def main():
     # Step 10: Create startup instructions
     create_startup_instructions()
     
-    print("\n🎉 BugSeek setup completed successfully!")
-    print("\n📋 Next steps:")
+    print("\n[SUCCESS] BugSeek setup completed successfully!")
+    print("\n[NOTE] Next steps:")
     print("   1. Read SETUP_COMPLETE.md for startup commands")
     print("   2. Run: python run.py")
     print("   3. Open: http://localhost:8080")
@@ -599,8 +606,8 @@ def main():
 if __name__ == "__main__":
     success = main()
     if not success:
-        print("\n❌ Setup failed! Please check the errors above and try again.")
+        print("\n[ERROR] Setup failed! Please check the errors above and try again.")
         sys.exit(1)
     else:
-        print("\n✨ Setup successful! You're ready to use BugSeek.")
+        print("\n[SUCCESS] Setup successful! You're ready to use BugSeek.")
         sys.exit(0)
