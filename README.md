@@ -42,91 +42,55 @@ A professional, enterprise-grade error log management system with modern UI, pow
                        └─────────────────┘
 ```
 
-## 🧹 Project Cleanup Summary (2025-09-08)
-
-Perfect! I have successfully cleaned up the BugSeek project by removing all the unnecessary files. Here's a summary of what was deleted:
-
-Files and Directories Removed:
-
-✅ Python Cache Files
-•  __pycache__/ directories (root, backend, config)
-•  All .pyc compiled Python files
-
-✅ Duplicate Database Files
-•  bugseek.db (root directory - kept the one in backend/instance/)
-•  instance/ directory (root level - duplicate)
-
-✅ Old/Backup Files
-•  frontend/templates/base_old.html (old template backup)
-
-✅ Development/Demo Files
-•  demo.py
-•  test_database_viewer.py
-•  add_test_data.py
-•  create_sample_data.py
-
-✅ Database Viewer Utilities
-•  database_viewer.py
-•  run_db_viewer.bat
-•  run_db_viewer.ps1
-•  DATABASE_VIEWER_README.md
-
-✅ Test/Sample Upload Files
-•  uploads/ directory (root level)
-•  backend/uploads/20250909_022237_ai_studio_code.txt
-
-Files Kept (Essential Project Files):
-
-•  Core Application: run.py, backend/app.py, frontend/fast_app.py
-•  Models & Services: backend/models.py, backend/services.py, backend/tasks.py
-•  Configuration: config/settings.py, .env, .env.template
-•  Templates: All HTML templates (except the old backup)
-•  Static Assets: CSS and JavaScript files
-•  Tests: All test files in the tests/ directory
-•  Documentation: README.md, QUICK_START_GUIDE.md
-•  Dependencies: requirements.txt files
-•  Database: backend/instance/bugseek.db (the active database)
-•  Utilities: db_connection.py, query_utils.py
-
-The project is now much cleaner and contains only the essential files needed for the BugSeek application to function properly. All unnecessary development files, cache files, duplicates, and test data have been removed.
-
-## 🔧 Updated Installation Notes
-
-- Create and activate a virtual environment (recommended).
-- Install all project dependencies (backend + frontend) from the project root:
-  - pip install -r requirements.txt
-- Backend-only install (minimal runtime for API service):
-  - pip install -r backend/requirements.txt
-- Copy environment template and configure:
-  - Windows (PowerShell): copy .env.template .env
-  - macOS/Linux: cp .env.template .env
-  - Set at minimum:
-    - DATABASE_URL=sqlite:///backend/instance/bugseek.db
-    - BACKEND_API_URL=http://localhost:5000
-    - REDIS_URL=redis://localhost:6379/0
-- Initialize the database (either command works):
-  - From project root:
-    - python -c "from backend.app import create_app; from backend.models import create_tables; app = create_app(); create_tables(app)"
-  - Or from backend directory:
-    - cd backend && python -c "from app import create_app; from models import create_tables; app = create_app(); create_tables(app)"
 
 ## 🚀 Quick Start
 
 ### Prerequisites
 
 - **Python 3.8+**
-- **Redis Server** (optional, for background tasks)
 - **Git**
+- **OpenAI API Key** (optional, for AI features)
+- **Redis Server** (optional, for background tasks)
 
-### Installation
+### 🎯 One-Command Setup (Recommended)
 
-1. **Clone the repository**
+**Get BugSeek running in 2 minutes with realistic sample data:**
+
+```bash
+git clone <repository-url>
+cd BugSeek
+python setup_project.py
+python run.py
+```
+
+**Then open:** http://localhost:8080
+
+✨ **That's it!** Your BugSeek system is ready with 10 realistic sample error logs.
+
+### 📋 What the Setup Script Does
+
+The `setup_project.py` script automatically:
+- ✅ Checks Python 3.8+ compatibility
+- 🔧 Creates virtual environment (optional)
+- 📦 Installs all dependencies
+- ⚙️ Creates `.env` configuration file
+- 🗄️ Initializes database with proper schema
+- 📊 Adds 10 realistic sample error logs
+- 🤖 Sets up AI features (requires API key)
+- ✅ Tests database connection
+- 📋 Creates setup completion guide
+
+### 🔧 Manual Installation (Alternative)
+
+If you prefer step-by-step setup:
+
+1. **Clone and navigate**
    ```bash
    git clone <repository-url>
    cd BugSeek
    ```
 
-2. **Create virtual environment**
+2. **Create virtual environment** (recommended)
    ```bash
    python -m venv venv
    
@@ -144,50 +108,157 @@ The project is now much cleaner and contains only the essential files needed for
 
 4. **Configure environment**
    ```bash
-   # Copy environment template
-   cp .env.template .env
+   # Windows
+   copy .env.example .env
    
-   # Edit .env file with your settings
+   # macOS/Linux
+   cp .env.example .env
    ```
 
-5. **Initialize database**
+5. **Initialize database with sample data**
    ```bash
-   cd backend
-   python -c "from app import create_app; from models import create_tables; app = create_app(); create_tables(app)"
+   python init_database.py
    ```
 
-### Running the Application
+### 🚀 Running BugSeek
 
-#### Option 1: Full Stack (Recommended)
+#### 🎯 Unified Startup (Recommended)
 
-1. **Start Flask Backend**
-   ```bash
-   cd backend
-   python app.py
-   ```
-   API will be available at: http://localhost:5000
-   Swagger UI at: http://localhost:5000/api/docs/
-
-2. **Start Streamlit Frontend** (in new terminal)
-   ```bash
-   cd frontend
-   streamlit run app.py
-   ```
-   UI will be available at: http://localhost:8501
-
-3. **Start Celery Worker** (optional, in new terminal)
-   ```bash
-   cd backend
-   celery -A celery_worker.celery worker --loglevel=info
-   ```
-
-#### Option 2: Development Mode
-
+**Start both backend and frontend together:**
 ```bash
-# Start both services with auto-reload
-python -m backend.app &
-streamlit run frontend/app.py
+python run.py
 ```
+
+**Access your application:**
+- **Frontend UI**: http://localhost:8080 
+- **Backend API**: http://localhost:5000
+- **API Documentation**: http://localhost:5000/api/docs/
+
+#### 🔧 Individual Services
+
+**Start services separately:**
+```bash
+# Backend only
+python run.py --backend
+
+# Frontend only (in new terminal)
+python run.py --frontend
+```
+
+**Manual startup:**
+```bash
+# Backend (Flask API)
+cd backend && python app.py
+
+# Frontend (Streamlit UI) - in new terminal  
+cd frontend && streamlit run app.py
+
+# Background worker (optional) - in new terminal
+cd backend && celery -A celery_worker.celery worker --loglevel=info
+```
+
+## 🤖 AI Features Setup (Optional)
+
+### Add OpenAI API Key
+
+1. **Open `.env` file** in the root directory
+2. **Find this line:**
+   ```bash
+   OPENAI_API_KEY=your-openai-api-key-here
+   ```
+3. **Replace with your actual API key:**
+   ```bash
+   OPENAI_API_KEY=sk-1234567890abcdef...your-real-key
+   ```
+4. **Save and restart BugSeek**
+
+### Getting Your API Key
+
+**MediaTek Users:** Get your key from MediaTek Azure portal (endpoint pre-configured)
+**Others:** Get your key from https://platform.openai.com/
+
+**🔍 Check if working:** Look for 🜢 "OpenAI Connected" in the sidebar at http://localhost:8080
+
+**📚 Detailed Guide:** See `OPENAI_SETUP.md` for complete instructions
+
+## 📊 Sample Data
+
+**Your database includes 10 realistic error logs with:**
+
+| Team | Module | Examples |
+|------|--------|---------|
+| Frontend | Authentication, Dashboard | Login timeouts, chart rendering errors |
+| Backend | Database, FileUpload | Query timeouts, connection resets |
+| API | Payment, User Management | Gateway failures, validation errors |
+| DevOps | Deployment, CI/CD | Container failures, build timeouts |
+| QA | Testing, Load Testing | Test suite failures, performance issues |
+| Security | Authentication, SSL/TLS | Suspicious logins, certificate renewals |
+| Infrastructure | Monitoring, Load Balancer | Disk space alerts, connection drops |
+| Mobile | Push Notifications, Camera | FCM failures, iOS crashes |
+
+**Features ready to test:**
+- 🔍 **Search & Filter** by team, module, severity, environment
+- 📈 **Analytics Dashboard** with team performance metrics
+- 📄 **Detailed Reports** with AI analysis (when API key added)
+- ⬆️ **File Upload** ready for your own log files
+
+## 🛠️ Development Commands
+
+### Testing
+```bash
+pytest                          # Run all tests
+pytest tests/test_api.py        # Run specific test file
+pytest --cov=backend            # Run with coverage
+```
+
+### Database Operations
+```bash
+python database_viewer.py       # Interactive database explorer
+python init_database.py         # Reinitialize with fresh sample data
+python migrate_ai_tables.py     # Add AI analysis tables
+```
+
+### Development Tools
+```bash
+python test_db.py               # Test database connection
+```
+
+## 🚑 Troubleshooting
+
+### Quick Fixes
+
+**Python version issues?**
+```bash
+python --version  # Need 3.8+
+```
+
+**Dependencies not installing?**
+```bash
+python -m pip install --upgrade pip
+pip install -r requirements.txt
+```
+
+**Database issues?**
+```bash
+python test_db.py               # Test connection
+python init_database.py         # Recreate with sample data
+```
+
+**Can't access the app?**
+- Check if ports 5000 and 8080 are available
+- Try `python run.py --backend` then `python run.py --frontend` separately
+
+**"OpenAI Disconnected"?**
+- Check your API key in `.env` file
+- Verify API key permissions and quotas
+- See `OPENAI_SETUP.md` for detailed troubleshooting
+
+### Need More Help?
+
+- **📅 Quick Setup**: `QUICK_SETUP.md`
+- **🔧 Development Guide**: `WARP.md`
+- **🤖 AI Setup**: `OPENAI_SETUP.md`
+- **🔍 Database Explorer**: `python database_viewer.py`
 
 ## 📖 Usage Guide
 
