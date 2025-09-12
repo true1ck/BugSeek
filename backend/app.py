@@ -3,6 +3,7 @@ from flask_cors import CORS
 from flask_restx import Api, Resource, fields, reqparse
 from werkzeug.datastructures import FileStorage
 from sqlalchemy import text, func
+from datetime import datetime
 import os
 import sys
 
@@ -524,24 +525,120 @@ def create_app(config_name='development'):
     @automation_ns.route('/validate')
     class AutomationValidate(Resource):
         @automation_ns.expect(error_log_model)
-        @automation_ns.doc('validate_automation')
+        @automation_ns.doc('validate_automation', description='Validate error log data for automation framework integration')
+        @automation_ns.response(200, 'Validation completed successfully', success_response_model)
+        @automation_ns.response(400, 'Validation failed', error_response_model)
+        @automation_ns.response(500, 'Internal server error', error_response_model)
         def post(self):
-            """Placeholder endpoint for automation framework validation"""
+            """Validate error log data for automation framework integration"""
             try:
                 data = request.get_json()
                 
-                # TODO: Implement actual validation logic
-                # For now, return success with placeholder report link
+                if not data:
+                    return {
+                        'success': False,
+                        'message': 'No data provided for validation'
+                    }, 400
+                
+                # Validation criteria
+                validation_results = {
+                    'required_fields': True,
+                    'data_format': True,
+                    'content_quality': True,
+                    'automation_ready': True,
+                    'issues': []
+                }
+                
+                # Check required fields
+                required_fields = ['TeamName', 'Module', 'ErrorName', 'Description']
+                missing_fields = []
+                
+                for field in required_fields:
+                    if not data.get(field):
+                        missing_fields.append(field)
+                        validation_results['required_fields'] = False
+                
+                if missing_fields:
+                    validation_results['issues'].append(
+                        f"Missing required fields: {', '.join(missing_fields)}"
+                    )
+                
+                # Check data format and quality
+                if data.get('Description') and len(data['Description']) < 10:
+                    validation_results['content_quality'] = False
+                    validation_results['issues'].append(
+                        "Error description is too short for meaningful analysis"
+                    )
+                
+                # Check for automation readiness (log content or file)
+                has_log_content = bool(data.get('LogContentPreview')) or bool(data.get('LogFile'))
+                if not has_log_content:
+                    validation_results['automation_ready'] = False
+                    validation_results['issues'].append(
+                        "No log content available for automated analysis"
+                    )
+                
+                # Overall validation status
+                all_valid = all([
+                    validation_results['required_fields'],
+                    validation_results['data_format'],
+                    validation_results['content_quality']
+                ])
+                
+                # Generate validation report
+                report_id = f"val_{datetime.utcnow().strftime('%Y%m%d_%H%M%S')}_{data.get('TeamName', 'unknown')}"
+                
+                validation_summary = {
+                    'validation_id': report_id,
+                    'timestamp': datetime.utcnow().isoformat(),
+                    'input_data_summary': {
+                        'team': data.get('TeamName', 'Unknown'),
+                        'module': data.get('Module', 'Unknown'),
+                        'error': data.get('ErrorName', 'Unknown'),
+                        'has_description': bool(data.get('Description')),
+                        'has_log_content': has_log_content
+                    },
+                    'validation_results': validation_results,
+                    'overall_status': 'passed' if all_valid else 'failed_with_issues',
+                    'automation_compatible': validation_results['automation_ready'],
+                    'recommendations': []
+                }
+                
+                # Add recommendations based on issues
+                if not validation_results['required_fields']:
+                    validation_summary['recommendations'].append(
+                        "Ensure all required fields (TeamName, Module, ErrorName, Description) are provided"
+                    )
+                
+                if not validation_results['content_quality']:
+                    validation_summary['recommendations'].append(
+                        "Provide more detailed error descriptions for better analysis"
+                    )
+                
+                if not validation_results['automation_ready']:
+                    validation_summary['recommendations'].append(
+                        "Include log content or attach log files for automated processing"
+                    )
+                
+                if all_valid:
+                    validation_summary['recommendations'].append(
+                        "Data is ready for automated analysis and processing"
+                    )
                 
                 return {
                     'success': True,
-                    'message': 'Validation completed (placeholder)',
-                    'report_url': '/api/v1/reports/placeholder-id',
-                    'status': 'validated'
+                    'message': 'Validation completed successfully',
+                    'data': validation_summary,
+                    'report_url': f'/api/v1/automation/reports/{report_id}',
+                    'status': validation_summary['overall_status']
                 }, 200
                 
             except Exception as e:
-                return {'success': False, 'message': str(e)}, 500
+                current_app.logger.error(f"Automation validation error: {e}")
+                return {
+                    'success': False, 
+                    'message': f'Validation failed: {str(e)}'
+                }, 500
     
     @logs_ns.route('/<string:cr_id>/solutions')
     class LogSolutions(Resource):

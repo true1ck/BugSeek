@@ -47,32 +47,50 @@ class OpenAIService:
         try:
             # Try to get config from Flask app context
             if current_app:
-                self.api_key = current_app.config.get('OPENAI_API_KEY', os.getenv('OPENAI_API_KEY', ''))
-                self.endpoint = current_app.config.get('AZURE_OPENAI_ENDPOINT', os.getenv('AZURE_OPENAI_ENDPOINT', ''))
-                self.api_version = current_app.config.get('AZURE_OPENAI_API_VERSION', os.getenv('AZURE_OPENAI_API_VERSION', '2024-10-21'))
-                self.deployment_name = current_app.config.get('AZURE_OPENAI_DEPLOYMENT_NAME', os.getenv('AZURE_OPENAI_DEPLOYMENT_NAME', 'aida-gpt-4o-mini'))
+                # MediaTek environment variables (primary)
+                self.api_key = current_app.config.get('AZURE_API_KEY', os.getenv('AZURE_API_KEY', 
+                    current_app.config.get('OPENAI_API_KEY', os.getenv('OPENAI_API_KEY', ''))))
+                self.user_id = current_app.config.get('USER_ID', os.getenv('USER_ID', ''))
+                self.endpoint = current_app.config.get('ENDPOINT_URL', os.getenv('ENDPOINT_URL',
+                    current_app.config.get('AZURE_OPENAI_ENDPOINT', os.getenv('AZURE_OPENAI_ENDPOINT', 'https://mlop-azure-gateway.mediatek.inc'))))
+                self.model_name = current_app.config.get('MODEL_NAME', os.getenv('MODEL_NAME', 'aida-gpt-4o-mini'))
+                self.api_version = current_app.config.get('API_VERSION', os.getenv('API_VERSION', '2024-10-21'))
+                self.deployment_name = self.model_name  # For MediaTek, deployment name is same as model name
                 self.max_retries = current_app.config.get('AI_MAX_RETRIES', 3)
                 self.request_timeout = current_app.config.get('AI_REQUEST_TIMEOUT', 30)
         except RuntimeError:
             # No Flask app context, use environment variables directly
-            self.api_key = os.getenv('OPENAI_API_KEY', '')
-            self.endpoint = os.getenv('AZURE_OPENAI_ENDPOINT', '')
-            self.api_version = os.getenv('AZURE_OPENAI_API_VERSION', '2024-10-21')
-            self.deployment_name = os.getenv('AZURE_OPENAI_DEPLOYMENT_NAME', 'aida-gpt-4o-mini')
+            # MediaTek environment variables (primary)
+            self.api_key = os.getenv('AZURE_API_KEY', os.getenv('OPENAI_API_KEY', ''))
+            self.user_id = os.getenv('USER_ID', '')
+            self.endpoint = os.getenv('ENDPOINT_URL', os.getenv('AZURE_OPENAI_ENDPOINT', 'https://mlop-azure-gateway.mediatek.inc'))
+            self.model_name = os.getenv('MODEL_NAME', 'aida-gpt-4o-mini')
+            self.api_version = os.getenv('API_VERSION', '2024-10-21')
+            self.deployment_name = self.model_name
             self.max_retries = int(os.getenv('AI_MAX_RETRIES', '3'))
             self.request_timeout = int(os.getenv('AI_REQUEST_TIMEOUT', '30'))
+        
+        logger.info(f"AI Service initialized with endpoint: {self.endpoint}")
+        logger.info(f"Model: {self.model_name}, API Version: {self.api_version}")
     
     def _get_headers(self) -> Dict[str, str]:
-        """Get headers for OpenAI API requests."""
-        return {
-            'Content-Type': 'application/json',
+        """Get headers for OpenAI API requests (MediaTek compatible)."""
+        headers = {
+            'Content-Type': 'application/json; charset=utf-8',
             'api-key': self.api_key,
-            'User-Agent': 'BugSeek/1.0'
+            'User-Agent': 'BugSeek/1.0 MediaTek-Compatible'
         }
+        
+        # Add User-ID header for MediaTek environment
+        if self.user_id:
+            headers['X-User-Id'] = self.user_id
+            
+        return headers
     
     def _build_api_url(self) -> str:
-        """Build the complete API URL for Azure OpenAI."""
+        """Build the complete API URL for Azure OpenAI (MediaTek gateway compatible)."""
         base_url = self.endpoint.rstrip('/')
+        # MediaTek gateway URL format
         return f"{base_url}/openai/deployments/{self.deployment_name}/chat/completions?api-version={self.api_version}"
     
     def check_connection(self) -> Dict[str, Any]:

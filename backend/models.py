@@ -504,6 +504,150 @@ def init_db(app):
     db.init_app(app)
     return db
 
+class User(db.Model):
+    """User authentication model for proper user management."""
+    __tablename__ = 'users'
+
+    # Primary Key - Employee ID
+    EmployeeID = db.Column(db.String(50), primary_key=True)
+    
+    # User Information
+    FullName = db.Column(db.String(100), nullable=False)
+    Email = db.Column(db.String(100), nullable=False, unique=True)
+    Department = db.Column(db.String(100), nullable=True)
+    TeamName = db.Column(db.String(100), nullable=True)
+    JobTitle = db.Column(db.String(100), nullable=True)
+    
+    # Authentication
+    PasswordHash = db.Column(db.String(128), nullable=False)  # bcrypt hash
+    
+    # User Status and Permissions
+    IsActive = db.Column(db.Boolean, default=True, nullable=False)
+    IsAdmin = db.Column(db.Boolean, default=False, nullable=False)
+    
+    # Login Tracking
+    LastLogin = db.Column(db.DateTime, nullable=True)
+    LoginCount = db.Column(db.Integer, default=0, nullable=False)
+    
+    # Account Management
+    CreatedAt = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
+    UpdatedAt = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    CreatedBy = db.Column(db.String(50), nullable=True)  # Employee ID of creator
+    
+    # Session Management
+    SessionToken = db.Column(db.String(128), nullable=True, unique=True)
+    SessionExpiry = db.Column(db.DateTime, nullable=True)
+    
+    # Indexes for efficient queries
+    __table_args__ = (
+        Index('idx_user_email', 'Email'),
+        Index('idx_user_department', 'Department'),
+        Index('idx_user_team', 'TeamName'),
+        Index('idx_user_is_active', 'IsActive'),
+        Index('idx_user_session', 'SessionToken'),
+    )
+    
+    def __init__(self, **kwargs):
+        """Initialize User instance."""
+        super(User, self).__init__(**kwargs)
+    
+    def to_dict(self, include_sensitive=False):
+        """Convert User instance to dictionary for JSON serialization."""
+        user_dict = {
+            'EmployeeID': self.EmployeeID,
+            'FullName': self.FullName,
+            'Email': self.Email,
+            'Department': self.Department,
+            'TeamName': self.TeamName,
+            'JobTitle': self.JobTitle,
+            'IsActive': self.IsActive,
+            'IsAdmin': self.IsAdmin,
+            'LastLogin': self.LastLogin.isoformat() if self.LastLogin else None,
+            'LoginCount': self.LoginCount,
+            'CreatedAt': self.CreatedAt.isoformat() if self.CreatedAt else None,
+            'UpdatedAt': self.UpdatedAt.isoformat() if self.UpdatedAt else None,
+            'CreatedBy': self.CreatedBy
+        }
+        
+        if include_sensitive:
+            user_dict.update({
+                'SessionToken': self.SessionToken,
+                'SessionExpiry': self.SessionExpiry.isoformat() if self.SessionExpiry else None
+            })
+        
+        return user_dict
+    
+    def set_password(self, password):
+        """Set password hash using bcrypt."""
+        try:
+            import bcrypt
+            self.PasswordHash = bcrypt.hashpw(password.encode('utf-8'), bcrypt.gensalt()).decode('utf-8')
+        except ImportError:
+            # Fallback to SHA256 if bcrypt not available (not recommended for production)
+            import hashlib
+            import secrets
+            salt = secrets.token_hex(16)
+            self.PasswordHash = hashlib.sha256((password + salt).encode()).hexdigest() + ':' + salt
+    
+    def check_password(self, password):
+        """Check if provided password matches the stored hash."""
+        try:
+            import bcrypt
+            return bcrypt.checkpw(password.encode('utf-8'), self.PasswordHash.encode('utf-8'))
+        except ImportError:
+            # Fallback for SHA256 hashes
+            if ':' in self.PasswordHash:
+                stored_hash, salt = self.PasswordHash.split(':')
+                import hashlib
+                test_hash = hashlib.sha256((password + salt).encode()).hexdigest()
+                return test_hash == stored_hash
+            return False
+    
+    def generate_session_token(self, expires_in_hours=24):
+        """Generate a new session token."""
+        import secrets
+        self.SessionToken = secrets.token_urlsafe(64)
+        self.SessionExpiry = datetime.utcnow() + timedelta(hours=expires_in_hours)
+        return self.SessionToken
+    
+    def is_session_valid(self):
+        """Check if current session is valid."""
+        if not self.SessionToken or not self.SessionExpiry:
+            return False
+        return datetime.utcnow() < self.SessionExpiry
+    
+    def update_last_login(self):
+        """Update last login timestamp and increment login count."""
+        self.LastLogin = datetime.utcnow()
+        self.LoginCount += 1
+        self.UpdatedAt = datetime.utcnow()
+    
+    def clear_session(self):
+        """Clear session token and expiry."""
+        self.SessionToken = None
+        self.SessionExpiry = None
+        self.UpdatedAt = datetime.utcnow()
+    
+    @staticmethod
+    def find_by_employee_id(employee_id):
+        """Find user by employee ID."""
+        return User.query.filter_by(EmployeeID=employee_id).first()
+    
+    @staticmethod
+    def find_by_email(email):
+        """Find user by email address."""
+        return User.query.filter_by(Email=email).first()
+    
+    @staticmethod
+    def find_by_session_token(token):
+        """Find user by session token."""
+        return User.query.filter_by(SessionToken=token).first()
+    
+    def __repr__(self):
+        """String representation of User."""
+        return f'<User {self.EmployeeID}: {self.FullName} ({self.Email})>'
+
+
 class UserSolution(db.Model):
     """User-submitted solutions for an error log."""
     __tablename__ = 'user_solutions'

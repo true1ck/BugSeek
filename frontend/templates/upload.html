@@ -3,58 +3,124 @@
 {% block title %}Upload Log - BugSeek{% endblock %}
 
 {% block content %}
-<h2>📤 Upload Error Log</h2>
+<div class="page-title">📤 Upload Error Log</div>
+<p class="page-subtitle">Upload your error logs to get AI-powered analysis and intelligent bug detection</p>
 
-<div class="card">
-    <form method="POST" enctype="multipart/form-data">
-        <div class="grid">
-            <div>
-                <div class="form-group">
-                    <label for="file">Log File *</label>
-                    <input type="file" id="file" name="file" class="form-control" 
-                           accept=".txt,.log,.json,.xml" required>
-                    <small>Supported formats: TXT, LOG, JSON, XML (Max 16MB)</small>
+<!-- Upload Progress Section (Hidden initially) -->
+<div id="uploadProgress" class="card" style="display: none;">
+    <h3><i class="fas fa-upload"></i> Upload Progress</h3>
+    <div class="progress-container">
+        <div class="progress-bar">
+            <div id="progressBarFill" class="progress-fill" style="width: 0%;"></div>
+        </div>
+        <div id="progressText" class="progress-text">Preparing upload...</div>
+    </div>
+    
+    <div class="process-steps">
+        <div class="step" id="step1">
+            <i class="fas fa-file-upload"></i>
+            <span>File Upload</span>
+            <div class="step-status">Pending</div>
+        </div>
+        <div class="step" id="step2">
+            <i class="fas fa-database"></i>
+            <span>Database Storage</span>
+            <div class="step-status">Pending</div>
+        </div>
+        <div class="step" id="step3">
+            <i class="fas fa-brain"></i>
+            <span>AI Analysis</span>
+            <div class="step-status">Pending</div>
+        </div>
+        <div class="step" id="step4">
+            <i class="fas fa-chart-line"></i>
+            <span>Report Generation</span>
+            <div class="step-status">Pending</div>
+        </div>
+    </div>
+</div>
+
+<!-- Upload Form -->
+<div class="card" id="uploadForm">
+    <h3><i class="fas fa-cloud-upload-alt"></i> Upload Error Log</h3>
+    <p class="text-muted">Fill in the details below to upload your error log for AI-powered analysis</p>
+    
+    <form method="POST" enctype="multipart/form-data" id="logUploadForm">
+        <!-- File Upload Section -->
+        <div class="upload-section">
+            <h4><i class="fas fa-file"></i> Log File</h4>
+            <div class="file-upload-area" id="fileUploadArea">
+                <input type="file" id="file" name="file" class="form-control file-input" 
+                       accept=".txt,.log,.json,.xml,.out,.err" required>
+                <div class="file-upload-content">
+                    <i class="fas fa-cloud-upload-alt file-upload-icon"></i>
+                    <p class="file-upload-text">Click to browse or drag & drop your log file</p>
+                    <p class="file-upload-hint">Supported: TXT, LOG, JSON, XML, OUT, ERR (Max 16MB)</p>
                 </div>
-                
-                <div class="form-group">
-                    <label for="team_name">Team Name *</label>
-                    <input type="text" id="team_name" name="team_name" class="form-control" 
-                           placeholder="e.g., Frontend Team" required>
-                </div>
-                
-                <div class="form-group">
-                    <label for="module">Module *</label>
-                    <input type="text" id="module" name="module" class="form-control" 
-                           placeholder="e.g., Authentication" required>
-                </div>
-                
+                <div id="filePreview" class="file-preview" style="display: none;"></div>
             </div>
-            
-            <div>
-                <div class="form-group">
-                    <label for="owner">Owner *</label>
-                    <input type="email" id="owner" name="owner" class="form-control" 
-                           placeholder="e.g., john.doe@company.com" required>
+        </div>
+
+        <!-- Metadata Section -->
+        <div class="metadata-section">
+            <h4><i class="fas fa-tags"></i> Error Metadata</h4>
+            <div class="grid">
+                <div>
+                    <div class="form-group">
+                        <label for="team_name"><i class="fas fa-users"></i> Team Name *</label>
+                        <input type="text" id="team_name" name="team_name" class="form-control" 
+                               placeholder="e.g., Frontend Team, Backend Services" required>
+                        <small class="form-hint">Which team is responsible for this module?</small>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="module"><i class="fas fa-cube"></i> Module/Component *</label>
+                        <input type="text" id="module" name="module" class="form-control" 
+                               placeholder="e.g., Authentication, Payment Gateway" required>
+                        <small class="form-hint">Which system component produced this error?</small>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="owner"><i class="fas fa-user"></i> Owner/Contact *</label>
+                        <input type="email" id="owner" name="owner" class="form-control" 
+                               placeholder="john.doe@company.com" required>
+                        <small class="form-hint">Primary contact for this error resolution</small>
+                    </div>
                 </div>
                 
-                <div class="form-group">
-                    <label for="description">Error Description *</label>
-                    <textarea id="description" name="description" class="form-control" rows="4" 
-                              placeholder="Provide a detailed description of the error..." required></textarea>
-                </div>
-                
-                <div class="form-group">
-                    <label>
-                        <input type="checkbox" name="solution_possible"> 
-                        Solution Available
-                    </label>
-                    <small>Check if a solution is known for this error</small>
+                <div>
+                    <div class="form-group">
+                        <label for="description"><i class="fas fa-edit"></i> Error Description *</label>
+                        <textarea id="description" name="description" class="form-control" rows="6" 
+                                  placeholder="Describe the error scenario, steps to reproduce, impact on users, environment details, etc..." required></textarea>
+                        <small class="form-hint">Detailed description helps AI provide better analysis</small>
+                    </div>
+                    
+                    <div class="form-group checkbox-group">
+                        <label class="checkbox-label">
+                            <input type="checkbox" name="solution_possible" class="form-checkbox"> 
+                            <span class="checkmark"></span>
+                            <span class="checkbox-text">
+                                <strong>Solution Available</strong><br>
+                                <small>Check if you already know how to fix this issue</small>
+                            </span>
+                        </label>
+                    </div>
                 </div>
             </div>
         </div>
         
-        <button type="submit" class="btn btn-success">🚀 Upload Log</button>
-        <a href="/" class="btn">Cancel</a>
+        <!-- Action Buttons -->
+        <div class="form-actions">
+            <button type="submit" class="btn btn-primary btn-upload">
+                <i class="fas fa-rocket"></i>
+                Upload & Analyze Log
+            </button>
+            <a href="/" class="btn btn-outline">
+                <i class="fas fa-arrow-left"></i>
+                Back to Dashboard
+            </a>
+        </div>
     </form>
 </div>
 
@@ -68,47 +134,497 @@
     </ul>
 </div>
 
+<style>
+    .text-muted { color: #6b7280; margin-bottom: 2rem; }
+    
+    .upload-section, .metadata-section {
+        margin-bottom: 2.5rem;
+        padding-bottom: 2rem;
+        border-bottom: 2px solid #f3f4f6;
+    }
+    
+    .upload-section:last-of-type, .metadata-section:last-of-type {
+        border-bottom: none;
+    }
+    
+    .upload-section h4, .metadata-section h4 {
+        color: #374151;
+        font-size: 1.3rem;
+        font-weight: 600;
+        margin-bottom: 1.5rem;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+    
+    .file-upload-area {
+        position: relative;
+        border: 3px dashed #d1d5db;
+        border-radius: 16px;
+        padding: 3rem;
+        text-align: center;
+        transition: all 0.3s ease;
+        cursor: pointer;
+        background: #fafbfc;
+    }
+    
+    .file-upload-area:hover {
+        border-color: #6366f1;
+        background: #f8fafc;
+    }
+    
+    .file-upload-area.drag-over {
+        border-color: #10b981;
+        background: #ecfdf5;
+    }
+    
+    .file-input {
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        opacity: 0;
+        cursor: pointer;
+    }
+    
+    .file-upload-icon {
+        font-size: 3rem;
+        color: #9ca3af;
+        margin-bottom: 1rem;
+    }
+    
+    .file-upload-text {
+        font-size: 1.2rem;
+        font-weight: 600;
+        color: #374151;
+        margin-bottom: 0.5rem;
+    }
+    
+    .file-upload-hint {
+        color: #6b7280;
+        font-size: 0.95rem;
+    }
+    
+    .file-preview {
+        background: #f0f9ff;
+        border: 2px solid #0ea5e9;
+        border-radius: 12px;
+        padding: 1.5rem;
+        margin-top: 1rem;
+        text-align: left;
+    }
+    
+    .file-preview-header {
+        display: flex;
+        align-items: center;
+        gap: 1rem;
+        margin-bottom: 1rem;
+    }
+    
+    .file-preview-icon {
+        font-size: 2rem;
+        color: #0ea5e9;
+    }
+    
+    .file-preview-info h4 {
+        margin: 0;
+        color: #0c4a6e;
+        font-size: 1.1rem;
+    }
+    
+    .file-preview-info p {
+        margin: 0.25rem 0 0 0;
+        color: #0369a1;
+        font-size: 0.9rem;
+    }
+    
+    .form-hint {
+        color: #6b7280;
+        font-size: 0.875rem;
+        margin-top: 0.5rem;
+    }
+    
+    .checkbox-group {
+        margin-top: 1.5rem;
+    }
+    
+    .checkbox-label {
+        display: flex;
+        align-items: flex-start;
+        gap: 1rem;
+        cursor: pointer;
+        padding: 1rem;
+        border: 2px solid #e5e7eb;
+        border-radius: 12px;
+        transition: all 0.2s ease;
+    }
+    
+    .checkbox-label:hover {
+        border-color: #d1d5db;
+        background: #f9fafb;
+    }
+    
+    .form-checkbox {
+        width: 20px;
+        height: 20px;
+        margin: 0;
+    }
+    
+    .checkbox-text {
+        flex: 1;
+    }
+    
+    .form-actions {
+        display: flex;
+        gap: 1rem;
+        margin-top: 2rem;
+        padding-top: 2rem;
+        border-top: 2px solid #f3f4f6;
+    }
+    
+    .btn-upload {
+        min-width: 200px;
+    }
+    
+    /* Progress Styles */
+    .progress-container {
+        margin-bottom: 2rem;
+    }
+    
+    .progress-bar {
+        width: 100%;
+        height: 12px;
+        background: #e5e7eb;
+        border-radius: 6px;
+        overflow: hidden;
+        margin-bottom: 1rem;
+    }
+    
+    .progress-fill {
+        height: 100%;
+        background: linear-gradient(90deg, #10b981 0%, #059669 100%);
+        border-radius: 6px;
+        transition: width 0.3s ease;
+    }
+    
+    .progress-text {
+        text-align: center;
+        font-weight: 600;
+        color: #374151;
+        margin-bottom: 2rem;
+    }
+    
+    .process-steps {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: 1rem;
+    }
+    
+    .step {
+        text-align: center;
+        padding: 1.5rem 1rem;
+        border: 2px solid #e5e7eb;
+        border-radius: 12px;
+        transition: all 0.3s ease;
+    }
+    
+    .step i {
+        font-size: 2rem;
+        color: #9ca3af;
+        margin-bottom: 0.5rem;
+        display: block;
+    }
+    
+    .step span {
+        display: block;
+        font-weight: 600;
+        color: #374151;
+        margin-bottom: 0.5rem;
+    }
+    
+    .step-status {
+        font-size: 0.875rem;
+        color: #6b7280;
+        font-weight: 500;
+    }
+    
+    .step.active {
+        border-color: #3b82f6;
+        background: #eff6ff;
+    }
+    
+    .step.active i {
+        color: #3b82f6;
+    }
+    
+    .step.completed {
+        border-color: #10b981;
+        background: #ecfdf5;
+    }
+    
+    .step.completed i {
+        color: #10b981;
+    }
+    
+    .step.completed .step-status {
+        color: #10b981;
+    }
+    
+    /* Mobile Responsiveness */
+    @media (max-width: 768px) {
+        .file-upload-area {
+            padding: 2rem 1rem;
+        }
+        
+        .process-steps {
+            grid-template-columns: 1fr;
+        }
+        
+        .form-actions {
+            flex-direction: column;
+        }
+    }
+</style>
+
 <script>
-// File upload preview
-document.getElementById('file').addEventListener('change', function(e) {
-    const file = e.target.files[0];
-    if (file) {
-        const fileInfo = document.createElement('div');
-        fileInfo.innerHTML = `
-            <small>
-                <strong>Selected:</strong> ${file.name} 
-                (${(file.size/1024/1024).toFixed(2)} MB)
-            </small>
-        `;
-        fileInfo.style.marginTop = '0.5rem';
-        fileInfo.style.color = '#666';
-        
-        // Remove existing file info
-        const existing = this.parentNode.querySelector('.file-info');
-        if (existing) existing.remove();
-        
-        fileInfo.className = 'file-info';
-        this.parentNode.appendChild(fileInfo);
+// Enhanced file upload with drag & drop
+const fileUploadArea = document.getElementById('fileUploadArea');
+const fileInput = document.getElementById('file');
+const filePreview = document.getElementById('filePreview');
+const uploadForm = document.getElementById('uploadForm');
+const progressSection = document.getElementById('uploadProgress');
+
+// Drag and drop functionality
+fileUploadArea.addEventListener('dragover', function(e) {
+    e.preventDefault();
+    this.classList.add('drag-over');
+});
+
+fileUploadArea.addEventListener('dragleave', function(e) {
+    e.preventDefault();
+    this.classList.remove('drag-over');
+});
+
+fileUploadArea.addEventListener('drop', function(e) {
+    e.preventDefault();
+    this.classList.remove('drag-over');
+    
+    const files = e.dataTransfer.files;
+    if (files.length > 0) {
+        fileInput.files = files;
+        handleFileSelection(files[0]);
     }
 });
 
-// Form validation
-document.querySelector('form').addEventListener('submit', function(e) {
-    const required = this.querySelectorAll('[required]');
+// File selection handling
+fileInput.addEventListener('change', function(e) {
+    const file = e.target.files[0];
+    if (file) {
+        handleFileSelection(file);
+    }
+});
+
+function handleFileSelection(file) {
+    // Validate file size (16MB limit)
+    const maxSize = 16 * 1024 * 1024; // 16MB
+    if (file.size > maxSize) {
+        alert('File size exceeds 16MB limit. Please select a smaller file.');
+        fileInput.value = '';
+        return;
+    }
+    
+    // Show file preview
+    const fileSize = (file.size / 1024 / 1024).toFixed(2);
+    const fileType = file.name.split('.').pop().toUpperCase();
+    
+    filePreview.innerHTML = `
+        <div class="file-preview-header">
+            <i class="fas fa-file-alt file-preview-icon"></i>
+            <div class="file-preview-info">
+                <h4>${file.name}</h4>
+                <p>${fileType} file, ${fileSize} MB</p>
+            </div>
+        </div>
+    `;
+    
+    filePreview.style.display = 'block';
+    document.querySelector('.file-upload-content').style.display = 'none';
+}
+
+// Enhanced form validation
+function validateForm() {
+    const required = document.querySelectorAll('[required]');
     let valid = true;
     
     required.forEach(field => {
-        if (!field.value.trim()) {
-            field.style.borderColor = '#dc3545';
+        const value = field.type === 'file' ? field.files.length > 0 : field.value.trim();
+        
+        if (!value) {
+            field.style.borderColor = '#ef4444';
+            field.style.boxShadow = '0 0 0 3px rgba(239, 68, 68, 0.1)';
             valid = false;
+            
+            // Add error message
+            let errorMsg = field.parentNode.querySelector('.error-message');
+            if (!errorMsg) {
+                errorMsg = document.createElement('div');
+                errorMsg.className = 'error-message';
+                errorMsg.style.color = '#ef4444';
+                errorMsg.style.fontSize = '0.875rem';
+                errorMsg.style.marginTop = '0.5rem';
+                field.parentNode.appendChild(errorMsg);
+            }
+            errorMsg.textContent = 'This field is required';
         } else {
-            field.style.borderColor = '#ddd';
+            field.style.borderColor = '#d1d5db';
+            field.style.boxShadow = 'none';
+            
+            // Remove error message
+            const errorMsg = field.parentNode.querySelector('.error-message');
+            if (errorMsg) {
+                errorMsg.remove();
+            }
         }
     });
     
-    if (!valid) {
-        e.preventDefault();
-        alert('Please fill in all required fields marked with *');
+    return valid;
+}
+
+// Form submission with progress tracking
+document.getElementById('logUploadForm').addEventListener('submit', function(e) {
+    e.preventDefault();
+    
+    if (!validateForm()) {
+        if (window.notifications) {
+            window.notifications.error('Please fill in all required fields', 'Validation Error');
+        } else {
+            alert('Please fill in all required fields marked with *');
+        }
+        return;
+    }
+    
+    // Show progress section
+    uploadForm.style.display = 'none';
+    progressSection.style.display = 'block';
+    
+    // Simulate upload progress
+    simulateUploadProgress();
+    
+    // Submit form data
+    const formData = new FormData(this);
+    
+    fetch(this.action || window.location.pathname, {
+        method: 'POST',
+        body: formData
+    })
+    .then(response => {
+        if (response.redirected) {
+            window.location.href = response.url;
+            return;
+        }
+        return response.text();
+    })
+    .then(html => {
+        if (html) {
+            document.body.innerHTML = html;
+        }
+    })
+    .catch(error => {
+        console.error('Upload error:', error);
+        // Reset form on error
+        uploadForm.style.display = 'block';
+        progressSection.style.display = 'none';
+        
+        if (window.notifications) {
+            window.notifications.error('Upload failed. Please try again.', 'Upload Error');
+        } else {
+            alert('Upload failed. Please try again.');
+        }
+    });
+});
+
+function simulateUploadProgress() {
+    const progressBar = document.getElementById('progressBarFill');
+    const progressText = document.getElementById('progressText');
+    const steps = ['step1', 'step2', 'step3', 'step4'];
+    
+    let progress = 0;
+    let currentStep = 0;
+    
+    const interval = setInterval(() => {
+        progress += Math.random() * 15;
+        if (progress > 100) progress = 100;
+        
+        progressBar.style.width = progress + '%';
+        
+        // Update step status
+        const stepProgress = progress / 25;
+        const newStep = Math.min(Math.floor(stepProgress), 3);
+        
+        if (newStep > currentStep) {
+            // Mark previous steps as completed
+            for (let i = 0; i <= currentStep; i++) {
+                const step = document.getElementById(steps[i]);
+                step.classList.remove('active');
+                step.classList.add('completed');
+                step.querySelector('.step-status').textContent = 'Completed';
+            }
+            
+            // Mark current step as active
+            if (newStep < steps.length) {
+                const step = document.getElementById(steps[newStep]);
+                step.classList.add('active');
+                step.querySelector('.step-status').textContent = 'In Progress';
+            }
+            
+            currentStep = newStep;
+        }
+        
+        // Update progress text
+        if (progress < 25) {
+            progressText.textContent = 'Uploading file...';
+        } else if (progress < 50) {
+            progressText.textContent = 'Storing in database...';
+        } else if (progress < 75) {
+            progressText.textContent = 'Running AI analysis...';
+        } else if (progress < 100) {
+            progressText.textContent = 'Generating report...';
+        } else {
+            progressText.textContent = 'Complete! Redirecting...';
+            clearInterval(interval);
+            
+            // Mark final step as completed
+            const finalStep = document.getElementById(steps[3]);
+            finalStep.classList.remove('active');
+            finalStep.classList.add('completed');
+            finalStep.querySelector('.step-status').textContent = 'Completed';
+        }
+    }, 200);
+}
+
+// Clear file selection
+function clearFileSelection() {
+    fileInput.value = '';
+    filePreview.style.display = 'none';
+    document.querySelector('.file-upload-content').style.display = 'block';
+}
+
+// Add clear button to file preview
+fileInput.addEventListener('change', function() {
+    if (this.files.length > 0) {
+        setTimeout(() => {
+            const clearBtn = document.createElement('button');
+            clearBtn.type = 'button';
+            clearBtn.className = 'btn btn-sm btn-outline';
+            clearBtn.innerHTML = '<i class="fas fa-times"></i> Clear';
+            clearBtn.style.marginTop = '1rem';
+            clearBtn.onclick = clearFileSelection;
+            
+            if (!filePreview.querySelector('.btn')) {
+                filePreview.appendChild(clearBtn);
+            }
+        }, 100);
     }
 });
 </script>

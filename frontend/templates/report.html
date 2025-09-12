@@ -111,32 +111,173 @@
 </div>
 {% endif %}
 
+<!-- AI Analysis Section -->
 {% if report.ai_summary %}
-<div class="card">
-    <h3>🤖 AI Summary</h3>
-    <div style="background: #e3f2fd; padding: 1rem; border-radius: 4px; border-left: 4px solid #2196f3;">
-        <p>{{ report.ai_summary.summary if report.ai_summary.summary else 'AI analysis in progress...' }}</p>
+<div class="card ai-analysis-card">
+    <div class="card-header">
+        <h3><i class="fas fa-brain"></i> AI Analysis Results</h3>
+        <div class="ai-status completed">
+            <i class="fas fa-check-circle"></i> Analysis Complete
+        </div>
+    </div>
+    
+    <div class="ai-summary-section">
+        <h4><i class="fas fa-clipboard-list"></i> Summary</h4>
+        <div class="ai-summary-content">
+            <p>{{ report.ai_summary.summary if report.ai_summary.summary else 'AI analysis in progress...' }}</p>
+        </div>
+        
+        {% if report.ai_summary.confidence %}
+        <div class="ai-confidence">
+            <span>Confidence:</span>
+            <div class="confidence-bar">
+                <div class="confidence-fill" style="width: {{ (report.ai_summary.confidence * 100)|int }}%"></div>
+            </div>
+            <span>{{ (report.ai_summary.confidence * 100)|int }}%</span>
+        </div>
+        {% endif %}
+        
+        {% if report.ai_summary.keywords %}
+        <div class="ai-keywords">
+            <h5><i class="fas fa-tags"></i> Key Terms</h5>
+            <div class="keywords-list">
+                {% for keyword in report.ai_summary.keywords[:8] %}
+                    <span class="keyword-tag">{{ keyword }}</span>
+                {% endfor %}
+            </div>
+        </div>
+        {% endif %}
+        
+        {% if report.ai_summary.severity %}
+        <div class="severity-indicator">
+            <h5><i class="fas fa-exclamation-triangle"></i> Severity Assessment</h5>
+            <span class="severity-badge severity-{{ report.ai_summary.severity }}">
+                {{ report.ai_summary.severity.title() }} Priority
+            </span>
+        </div>
+        {% endif %}
+        
+        {% if report.ai_summary.root_cause %}
+        <div class="root-cause">
+            <h5><i class="fas fa-search"></i> Likely Root Cause</h5>
+            <p class="root-cause-text">{{ report.ai_summary.root_cause }}</p>
+        </div>
+        {% endif %}
     </div>
 </div>
 {% endif %}
 
+<!-- Detected Issues Section -->
+{% if report.detected_errors %}
+<div class="card detected-issues-card">
+    <div class="card-header">
+        <h3><i class="fas fa-exclamation-circle"></i> Detected Issues</h3>
+        <div class="issues-count">
+            <span class="count-badge">{{ report.detected_errors|length }} issue{{ 's' if report.detected_errors|length != 1 else '' }} found</span>
+        </div>
+    </div>
+    
+    <div class="detected-issues-list">
+        {% for issue in report.detected_errors %}
+            <div class="issue-item severity-{{ issue.severity }}">
+                <div class="issue-header">
+                    <div class="issue-line-number">
+                        <i class="fas fa-code"></i> Line {{ issue.line }}
+                    </div>
+                    <div class="issue-severity">
+                        <span class="severity-tag severity-{{ issue.severity }}">
+                            {% if issue.severity == 'critical' %}
+                                <i class="fas fa-skull"></i> Critical
+                            {% elif issue.severity == 'high' %}
+                                <i class="fas fa-exclamation-triangle"></i> High
+                            {% elif issue.severity == 'medium' %}
+                                <i class="fas fa-exclamation"></i> Medium
+                            {% else %}
+                                <i class="fas fa-info-circle"></i> Low
+                            {% endif %}
+                        </span>
+                    </div>
+                </div>
+                <div class="issue-text">
+                    <code>{{ issue.text }}</code>
+                </div>
+                {% if issue.category %}
+                <div class="issue-category">
+                    <i class="fas fa-tag"></i> {{ issue.category.replace('_', ' ').title() }}
+                </div>
+                {% endif %}
+            </div>
+        {% endfor %}
+    </div>
+</div>
+{% endif %}
+
+<!-- Enhanced Solutions Section -->
 {% if report.suggested_solutions %}
-<div class="card">
-    <h3>💡 Suggested Solutions</h3>
+<div class="card solutions-card">
+    <div class="card-header">
+        <h3><i class="fas fa-lightbulb"></i> AI-Suggested Solutions</h3>
+        {% if report.suggested_solutions.confidence %}
+        <div class="solution-confidence">
+            <span>Overall Confidence: {{ (report.suggested_solutions.confidence * 100)|int }}%</span>
+        </div>
+        {% endif %}
+    </div>
+    
     {% if report.suggested_solutions.solutions %}
-        <div style="background: #f1f8e9; padding: 1rem; border-radius: 4px; border-left: 4px solid #4caf50;">
-            {% for solution in report.suggested_solutions.solutions[:3] %}
-                <div style="margin-bottom: 1rem;">
-                    <strong>Solution {{ loop.index }}:</strong>
-                    <p>{{ solution.description if solution.description else solution }}</p>
+        <div class="solutions-list">
+            {% for solution in report.suggested_solutions.solutions[:5] %}
+                <div class="solution-item" data-solution-id="{{ loop.index }}">
+                    <div class="solution-header">
+                        <div class="solution-number">{{ loop.index }}</div>
+                        <div class="solution-priority">
+                            {% if loop.index == 1 %}
+                                <span class="priority-badge priority-high">Recommended</span>
+                            {% elif loop.index <= 3 %}
+                                <span class="priority-badge priority-medium">Good Option</span>
+                            {% else %}
+                                <span class="priority-badge priority-low">Alternative</span>
+                            {% endif %}
+                        </div>
+                        <div class="solution-rating">
+                            {% for i in range(1, 6) %}
+                                <i class="fas fa-star solution-star" data-rating="{{ i }}"></i>
+                            {% endfor %}
+                        </div>
+                    </div>
+                    
+                    <div class="solution-content">
+                        <p>{{ solution.description if solution.description else solution }}</p>
+                    </div>
+                    
                     {% if solution.confidence %}
-                        <small style="color: #666;">Confidence: {{ solution.confidence }}%</small>
+                    <div class="solution-meta">
+                        <small><i class="fas fa-chart-bar"></i> Confidence: {{ solution.confidence }}%</small>
+                    </div>
                     {% endif %}
+                    
+                    <div class="solution-actions">
+                        <button class="btn btn-sm btn-outline" onclick="copySolution({{ loop.index }})">
+                            <i class="fas fa-copy"></i> Copy
+                        </button>
+                        <button class="btn btn-sm btn-outline" onclick="markHelpful({{ loop.index }})">
+                            <i class="fas fa-thumbs-up"></i> Helpful
+                        </button>
+                        <button class="btn btn-sm btn-outline" onclick="reportIssue({{ loop.index }})">
+                            <i class="fas fa-flag"></i> Report
+                        </button>
+                    </div>
                 </div>
             {% endfor %}
         </div>
     {% else %}
-        <p style="color: #666; font-style: italic;">No automated solutions available yet.</p>
+        <div class="no-solutions">
+            <div class="no-solutions-icon">
+                <i class="fas fa-search"></i>
+            </div>
+            <p>No automated solutions available yet.</p>
+            <p><small>Our AI is still analyzing this error pattern. Check back later or add a manual solution below.</small></p>
+        </div>
     {% endif %}
 </div>
 {% endif %}
@@ -562,6 +703,264 @@
     margin-bottom: 0.75rem;
 }
 
+/* AI Analysis Enhancements */
+.ai-analysis-card {
+    border: 2px solid var(--info);
+    background: linear-gradient(135deg, rgba(59, 130, 246, 0.05), rgba(99, 102, 241, 0.05));
+}
+
+.ai-summary-section {
+    display: grid;
+    gap: 1.5rem;
+}
+
+.ai-summary-section h4, .ai-summary-section h5 {
+    color: var(--gray-800);
+    margin-bottom: 0.75rem;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-size: 1rem;
+}
+
+.ai-summary-content {
+    background: rgba(59, 130, 246, 0.1);
+    padding: 1.5rem;
+    border-radius: var(--radius-md);
+    border-left: 4px solid var(--info);
+    line-height: 1.6;
+}
+
+.keywords-list {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+}
+
+.keyword-tag {
+    background: var(--primary);
+    color: white;
+    padding: 0.25rem 0.75rem;
+    border-radius: var(--radius-full);
+    font-size: 0.8rem;
+    font-weight: 500;
+}
+
+.severity-badge {
+    padding: 0.5rem 1rem;
+    border-radius: var(--radius-md);
+    font-weight: 600;
+    font-size: 0.9rem;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.severity-critical {
+    background: rgba(239, 68, 68, 0.1);
+    color: var(--danger);
+    border: 1px solid rgba(239, 68, 68, 0.3);
+}
+
+.severity-high {
+    background: rgba(245, 158, 11, 0.1);
+    color: var(--warning);
+    border: 1px solid rgba(245, 158, 11, 0.3);
+}
+
+.severity-medium {
+    background: rgba(59, 130, 246, 0.1);
+    color: var(--info);
+    border: 1px solid rgba(59, 130, 246, 0.3);
+}
+
+.severity-low {
+    background: rgba(107, 114, 128, 0.1);
+    color: var(--gray-600);
+    border: 1px solid rgba(107, 114, 128, 0.3);
+}
+
+.root-cause-text {
+    background: rgba(16, 185, 129, 0.1);
+    padding: 1rem;
+    border-radius: var(--radius-md);
+    border-left: 4px solid var(--success);
+    margin: 0;
+    font-style: italic;
+}
+
+/* Detected Issues Styles */
+.detected-issues-card {
+    border: 2px solid rgba(245, 158, 11, 0.3);
+    background: linear-gradient(135deg, rgba(245, 158, 11, 0.05), rgba(251, 191, 36, 0.05));
+}
+
+.issues-count .count-badge {
+    background: var(--warning);
+    color: white;
+    padding: 0.25rem 0.75rem;
+    border-radius: var(--radius-full);
+    font-size: 0.85rem;
+    font-weight: 600;
+}
+
+.detected-issues-list {
+    display: grid;
+    gap: 1rem;
+}
+
+.issue-item {
+    background: var(--white);
+    border: 1px solid var(--gray-200);
+    border-radius: var(--radius-md);
+    padding: 1.5rem;
+    transition: all 0.3s ease;
+}
+
+.issue-item:hover {
+    box-shadow: var(--shadow-md);
+    transform: translateY(-1px);
+}
+
+.issue-item.severity-critical {
+    border-left: 4px solid var(--danger);
+}
+
+.issue-item.severity-high {
+    border-left: 4px solid var(--warning);
+}
+
+.issue-item.severity-medium {
+    border-left: 4px solid var(--info);
+}
+
+.issue-item.severity-low {
+    border-left: 4px solid var(--gray-400);
+}
+
+.issue-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1rem;
+}
+
+.issue-line-number {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-weight: 600;
+    color: var(--gray-700);
+    font-size: 0.9rem;
+}
+
+.severity-tag {
+    padding: 0.25rem 0.75rem;
+    border-radius: var(--radius-full);
+    font-size: 0.75rem;
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+    gap: 0.375rem;
+}
+
+.issue-text {
+    background: var(--gray-900);
+    color: var(--gray-100);
+    padding: 1rem;
+    border-radius: var(--radius-md);
+    margin-bottom: 1rem;
+    overflow-x: auto;
+}
+
+.issue-text code {
+    font-family: 'Courier New', monospace;
+    font-size: 0.85rem;
+    line-height: 1.4;
+    color: inherit;
+    background: none;
+}
+
+.issue-category {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-size: 0.85rem;
+    color: var(--gray-600);
+    font-weight: 500;
+}
+
+/* Enhanced Solutions Styles */
+.solutions-card {
+    border: 2px solid rgba(16, 185, 129, 0.3);
+    background: linear-gradient(135deg, rgba(16, 185, 129, 0.05), rgba(5, 150, 105, 0.05));
+}
+
+.solution-confidence {
+    font-size: 0.9rem;
+    color: var(--gray-600);
+    font-weight: 500;
+}
+
+.solutions-list {
+    display: grid;
+    gap: 1.5rem;
+}
+
+.priority-badge {
+    padding: 0.25rem 0.75rem;
+    border-radius: var(--radius-full);
+    font-size: 0.75rem;
+    font-weight: 600;
+}
+
+.priority-high {
+    background: rgba(16, 185, 129, 0.1);
+    color: var(--success);
+    border: 1px solid rgba(16, 185, 129, 0.3);
+}
+
+.priority-medium {
+    background: rgba(59, 130, 246, 0.1);
+    color: var(--info);
+    border: 1px solid rgba(59, 130, 246, 0.3);
+}
+
+.priority-low {
+    background: rgba(107, 114, 128, 0.1);
+    color: var(--gray-600);
+    border: 1px solid rgba(107, 114, 128, 0.3);
+}
+
+.solution-meta {
+    margin-top: 0.75rem;
+    padding-top: 0.75rem;
+    border-top: 1px solid rgba(0, 0, 0, 0.1);
+}
+
+.solution-meta small {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    color: var(--gray-600);
+}
+
+.no-solutions {
+    text-align: center;
+    padding: 3rem 1rem;
+    color: var(--gray-600);
+}
+
+.no-solutions-icon {
+    font-size: 3rem;
+    color: var(--gray-400);
+    margin-bottom: 1rem;
+}
+
+.no-solutions p {
+    margin-bottom: 0.5rem;
+}
+
 /* Solutions Enhancement */
 .solutions-list {
     display: flex;
@@ -840,6 +1239,41 @@ function rateSolution(solutionId, rating) {
     // Simulate rating submission
     console.log(`Rating solution ${solutionId} with ${rating} stars`);
     showNotification(`Rated solution ${rating} stars`, 'success');
+}
+
+function copySolution(solutionId) {
+    const solutionItem = document.querySelector(`[data-solution-id="${solutionId}"]`);
+    const solutionText = solutionItem.querySelector('.solution-content p').textContent;
+    
+    copyToClipboard(solutionText);
+    showNotification('Solution copied to clipboard!', 'success');
+}
+
+function markHelpful(solutionId) {
+    const button = event.target.closest('button');
+    const icon = button.querySelector('i');
+    
+    // Toggle helpful state
+    if (button.classList.contains('helpful')) {
+        button.classList.remove('helpful');
+        icon.classList.replace('fa-thumbs-up', 'fa-thumbs-up');
+        button.style.color = '';
+        showNotification('Feedback removed', 'info');
+    } else {
+        button.classList.add('helpful');
+        button.style.color = 'var(--success)';
+        icon.classList.replace('fa-thumbs-up', 'fa-thumbs-up');
+        showNotification('Marked as helpful!', 'success');
+    }
+}
+
+function reportIssue(solutionId) {
+    const reason = prompt('Why are you reporting this solution? (optional)');
+    
+    if (reason !== null) {
+        console.log(`Reporting solution ${solutionId}: ${reason}`);
+        showNotification('Thank you for your feedback. Solution reported.', 'info');
+    }
 }
 
 function showNotification(message, type = 'success') {
