@@ -22,9 +22,9 @@ def initialize_database():
     
     try:
         from flask import Flask
-from backend.models import db, create_tables, ErrorLog, ErrorLogFile, AIAnalysisResult, OpenAIStatus, SimilarLogMatch
-from config.settings import config
-from backend.auth_service import AuthenticationService
+        from backend.models import db, create_tables, ErrorLog, ErrorLogFile, AIAnalysisResult, OpenAIStatus, SimilarLogMatch
+        from config.settings import config
+        from backend.auth_service import AuthenticationService
         
         # Create Flask app
         app = Flask(__name__)
