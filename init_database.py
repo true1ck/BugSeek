@@ -15,7 +15,8 @@ from pathlib import Path
 sys.path.append(str(Path(__file__).parent))
 
 from flask import Flask
-from backend.models import db, ErrorLog, create_tables
+from backend.models import db, ErrorLog, User, create_tables
+from backend.auth_service import AuthenticationService
 from config.settings import config
 
 def init_database():
@@ -648,6 +649,110 @@ def verify_database():
         print(f"❌ Error verifying database: {e}")
         return False
 
+def create_demo_users(app):
+    """Create demo users for authentication."""
+    print("\n👥 Creating demo users...")
+    
+    # Demo users to create
+    demo_users = [
+        {
+            'EmployeeID': 'admin',
+            'FullName': 'System Administrator',
+            'Email': 'admin@bugseek.com',
+            'Password': 'admin123',
+            'Department': 'IT',
+            'TeamName': 'System Administration',
+            'JobTitle': 'Administrator',
+            'IsActive': True,
+            'IsAdmin': True
+        },
+        {
+            'EmployeeID': 'developer',
+            'FullName': 'John Developer',
+            'Email': 'developer@bugseek.com',
+            'Password': 'dev123',
+            'Department': 'Engineering',
+            'TeamName': 'Backend Development',
+            'JobTitle': 'Senior Developer',
+            'IsActive': True,
+            'IsAdmin': False
+        },
+        {
+            'EmployeeID': 'testuser',
+            'FullName': 'Jane Tester',
+            'Email': 'testuser@bugseek.com',
+            'Password': 'test123',
+            'Department': 'Quality Assurance',
+            'TeamName': 'QA Team',
+            'JobTitle': 'QA Engineer',
+            'IsActive': True,
+            'IsAdmin': False
+        },
+        {
+            'EmployeeID': 'hackathon',
+            'FullName': 'Hackathon Participant',
+            'Email': 'hackathon@bugseek.com',
+            'Password': 'hackathon2025',
+            'Department': 'Engineering',
+            'TeamName': 'Hackathon Team',
+            'JobTitle': 'Participant',
+            'IsActive': True,
+            'IsAdmin': False
+        },
+        {
+            'EmployeeID': 'demo',
+            'FullName': 'Demo User',
+            'Email': 'demo@bugseek.com',
+            'Password': 'demo123',
+            'Department': 'Sales',
+            'TeamName': 'Demo Team',
+            'JobTitle': 'Demo Specialist',
+            'IsActive': True,
+            'IsAdmin': False
+        }
+    ]
+    
+    with app.app_context():
+        try:
+            # Clear existing users first
+            User.query.delete()
+            db.session.commit()
+            
+            created_users = []
+            
+            for user_data in demo_users:
+                print(f"   Creating user: {user_data['EmployeeID']}")
+                
+                # Create the user using AuthenticationService
+                result = AuthenticationService.create_user(user_data)
+                
+                if result['success']:
+                    print(f"   ✅ User {user_data['EmployeeID']} created successfully!")
+                    created_users.append(user_data['EmployeeID'])
+                else:
+                    print(f"   ❌ Failed to create user {user_data['EmployeeID']}: {result['message']}")
+            
+            if created_users:
+                print(f"\n✅ Successfully created {len(created_users)} demo users!")
+                
+                # Show user summary
+                print("\n👤 Demo User Credentials:")
+                for user_data in demo_users:
+                    role = "Admin" if user_data['IsAdmin'] else "User"
+                    print(f"   • {user_data['EmployeeID']} / {user_data['Password']} ({role} - {user_data['FullName']})")
+            else:
+                print("\n⚠️  No users were created")
+                return False
+            
+            return True
+            
+        except Exception as e:
+            print(f"❌ Error creating demo users: {e}")
+            import traceback
+            traceback.print_exc()
+            db.session.rollback()
+            return False
+
 def main():
     """Main initialization function."""
     print("🔍 BugSeek Database Initializer")
@@ -659,24 +764,37 @@ def main():
         print("❌ Failed to initialize database schema!")
         return False
     
-    # Step 2: Populate with sample data
+    # Step 2: Create demo users
+    users_success = create_demo_users(app)
+    if not users_success:
+        print("❌ Failed to create demo users!")
+        return False
+    
+    # Step 3: Populate with sample data
     success = populate_database(app)
     if not success:
         print("❌ Failed to populate database!")
         return False
     
-    # Step 3: Verify everything is working
+    # Step 4: Verify everything is working
     verify_success = verify_database()
     if not verify_success:
         print("❌ Database verification failed!")
         return False
     
     print("\n🎉 Database initialization completed successfully!")
+    print("\n🔑 You can now login with these credentials:")
+    print("   • admin / admin123 (Administrator)")
+    print("   • developer / dev123 (Developer)")
+    print("   • demo / demo123 (Demo User)")
+    print("   • testuser / test123 (QA Tester)")
+    print("   • hackathon / hackathon2025 (Hackathon User)")
     print("\n📋 Next steps:")
     print("   1. Test with: python db_connection.py")
     print("   2. Use CLI: python db_viewer.py")
     print("   3. Start backend: python run.py --backend")
-    print("   4. Check frontend for correct data display")
+    print("   4. Start frontend: python run.py --frontend")
+    print("   5. Login with demo credentials above")
     
     return True
 

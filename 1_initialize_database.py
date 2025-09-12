@@ -22,8 +22,9 @@ def initialize_database():
     
     try:
         from flask import Flask
-        from backend.models import db, create_tables, ErrorLog, ErrorLogFile, AIAnalysisResult, OpenAIStatus, SimilarLogMatch
-        from config.settings import config
+from backend.models import db, create_tables, ErrorLog, ErrorLogFile, AIAnalysisResult, OpenAIStatus, SimilarLogMatch
+from config.settings import config
+from backend.auth_service import AuthenticationService
         
         # Create Flask app
         app = Flask(__name__)
@@ -153,10 +154,45 @@ def create_directories():
         else:
             print(f"[OK] Directory exists: {directory}")
 
+def create_demo_users():
+    """Create demo users for authentication testing."""
+    print("\n" + "=" * 40)
+    print("Creating Demo Users")
+    print("=" * 40)
+    
+    demo_users = [
+        {"employee_id": "admin", "password": "admin123", "role": "System Administrator", "is_active": True},
+        {"employee_id": "developer", "password": "dev123", "role": "Developer User", "is_active": True},
+        {"employee_id": "testuser", "password": "test123", "role": "Test User", "is_active": True},
+        {"employee_id": "hackathon", "password": "hackathon2025", "role": "Hackathon Participant", "is_active": True},
+        {"employee_id": "demo", "password": "demo123", "role": "Demo User", "is_active": True}
+    ]
+    
+    created_count = 0
+    for user_data in demo_users:
+        try:
+            result = AuthenticationService.create_user(
+                employee_id=user_data["employee_id"],
+                password=user_data["password"],
+                role=user_data["role"],
+                is_active=user_data["is_active"]
+            )
+            
+            if result["success"]:
+                print(f"[OK] Created user: {user_data['employee_id']} ({user_data['role']})")
+                created_count += 1
+            else:
+                print(f"[INFO] User {user_data['employee_id']} already exists or creation failed")
+        except Exception as e:
+            print(f"[ERROR] Failed to create user {user_data['employee_id']}: {e}")
+    
+    print(f"\n[OK] Demo user creation completed. Created: {created_count}/5")
+    return created_count
+
 def main():
     """Main initialization function."""
     print("BugSeek Database Initializer")
-    print("This script will initialize your database with proper schema")
+    print("This script will initialize your database with proper schema and demo users")
     print()
     
     # Step 1: Create directories
@@ -172,10 +208,32 @@ def main():
         print("\n[ERROR] Database structure verification failed!")
         return False
     
+    # Step 4: Create demo users (within app context)
+    try:
+        from flask import Flask
+        from backend.models import db
+        from config.settings import config
+        
+        app = Flask(__name__)
+        app.config.from_object(config['development'])
+        db.init_app(app)
+        
+        with app.app_context():
+            create_demo_users()
+    except Exception as e:
+        print(f"[WARN] Demo user creation failed: {e}")
+        print("[INFO] You can create demo users later by running create_demo_users.py")
+    
     print("\n" + "=" * 60)
     print("INITIALIZATION COMPLETE")
     print("=" * 60)
     print("[SUCCESS] Your BugSeek database is ready!")
+    print("\nDemo users created:")
+    print("• admin / admin123 (System Administrator)")
+    print("• developer / dev123 (Developer User)")
+    print("• testuser / test123 (Test User)")
+    print("• hackathon / hackathon2025 (Hackathon Participant)")
+    print("• demo / demo123 (Demo User)")
     print("\nNext steps:")
     print("1. Run: python 2_load_sample_data.py")
     print("2. Or load your own data with the API")

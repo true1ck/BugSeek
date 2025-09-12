@@ -230,6 +230,7 @@ def add_special_cases_data():
         from flask import Flask
         from backend.models import db, ErrorLog
         from config.settings import config
+        from backend.auth_service import AuthenticationService
         
         # Create Flask app
         app = Flask(__name__)
@@ -283,6 +284,44 @@ def add_special_cases_data():
         import traceback
         traceback.print_exc()
         return 0
+
+def ensure_demo_users():
+    """Ensure demo users exist for authentication."""
+    print("\n" + "=" * 40)
+    print("Ensuring Demo Users Exist")
+    print("=" * 40)
+    
+    demo_users = [
+        {"employee_id": "admin", "password": "admin123", "role": "System Administrator", "is_active": True},
+        {"employee_id": "developer", "password": "dev123", "role": "Developer User", "is_active": True},
+        {"employee_id": "testuser", "password": "test123", "role": "Test User", "is_active": True},
+        {"employee_id": "hackathon", "password": "hackathon2025", "role": "Hackathon Participant", "is_active": True},
+        {"employee_id": "demo", "password": "demo123", "role": "Demo User", "is_active": True}
+    ]
+    
+    created_count = 0
+    for user_data in demo_users:
+        try:
+            result = AuthenticationService.create_user(
+                employee_id=user_data["employee_id"],
+                password=user_data["password"],
+                role=user_data["role"],
+                is_active=user_data["is_active"]
+            )
+            
+            if result["success"]:
+                print(f"[OK] Created user: {user_data['employee_id']} ({user_data['role']})")
+                created_count += 1
+            else:
+                print(f"[INFO] User {user_data['employee_id']} already exists")
+        except Exception as e:
+            print(f"[ERROR] Failed to create user {user_data['employee_id']}: {e}")
+    
+    if created_count > 0:
+        print(f"\n[OK] Created {created_count} new demo users")
+    else:
+        print(f"\n[OK] All demo users already exist")
+    return created_count
 
 def show_special_cases_summary():
     """Show summary of special cases data."""
@@ -357,6 +396,21 @@ def main():
     print("This script adds edge cases and special scenarios to your database")
     print()
     
+    # Ensure demo users exist first
+    try:
+        from flask import Flask
+        from backend.models import db
+        from config.settings import config
+        
+        app = Flask(__name__)
+        app.config.from_object(config['development'])
+        db.init_app(app)
+        
+        with app.app_context():
+            ensure_demo_users()
+    except Exception as e:
+        print(f"[WARN] Demo user creation failed: {e}")
+    
     # Add special cases data
     added_count = add_special_cases_data()
     
@@ -381,6 +435,12 @@ def main():
     print("• Time zone and daylight saving conflicts")
     print("• Database deadlocks and concurrent access")
     print("• System resource exhaustion scenarios")
+    print("\nDemo users available:")
+    print("• admin / admin123 (System Administrator)")
+    print("• developer / dev123 (Developer User)")
+    print("• testuser / test123 (Test User)")
+    print("• hackathon / hackathon2025 (Hackathon Participant)")
+    print("• demo / demo123 (Demo User)")
     print("\nNext steps:")
     print("1. Run: python 4_view_database.py (to explore all data)")
     print("2. Start the application: python run.py")

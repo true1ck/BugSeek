@@ -27,7 +27,7 @@ class BugSeekDatabaseViewer:
         """Setup database connection."""
         try:
             from flask import Flask
-            from backend.models import db, ErrorLog, ErrorLogFile, AIAnalysisResult
+            from backend.models import db, ErrorLog, ErrorLogFile, AIAnalysisResult, User
             from config.settings import config
             
             self.app = Flask(__name__)
@@ -39,6 +39,7 @@ class BugSeekDatabaseViewer:
             self.ErrorLog = ErrorLog
             self.ErrorLogFile = ErrorLogFile
             self.AIAnalysisResult = AIAnalysisResult
+            self.User = User
             
         except ImportError as e:
             print(f"[ERROR] Import error: {e}")
@@ -61,13 +62,14 @@ class BugSeekDatabaseViewer:
         print("7. Advanced Queries")
         print("8. Special Cases Explorer")
         print("9. Data Quality Check")
+        print("A. View Demo Users")
         print("0. Exit")
         print("=" * 60)
     
     def get_user_choice(self):
         """Get user menu choice."""
         try:
-            choice = input("Enter your choice (0-9): ").strip()
+            choice = input("Enter your choice (0-9, A): ").strip()
             return choice
         except KeyboardInterrupt:
             print("\n\n[INFO] Goodbye!")
@@ -716,6 +718,70 @@ class BugSeekDatabaseViewer:
             except Exception as e:
                 print(f"[ERROR] Data quality check failed: {e}")
     
+    def view_demo_users(self):
+        """View demo users and authentication data."""
+        print("\n" + "=" * 50)
+        print("DEMO USERS")
+        print("=" * 50)
+        
+        with self.app.app_context():
+            try:
+                # Check if User table exists
+                from sqlalchemy import inspect
+                inspector = inspect(self.db.engine)
+                tables = inspector.get_table_names()
+                
+                if 'users' not in tables:
+                    print("[INFO] User table not found. Users may not be set up yet.")
+                    print("Run: python 1_initialize_database.py to create users")
+                    return
+                
+                # Get all users
+                users = self.User.query.all()
+                
+                if not users:
+                    print("[INFO] No demo users found in database.")
+                    print("\nTo create demo users, run one of these scripts:")
+                    print("• python 1_initialize_database.py")
+                    print("• python 2_load_sample_data.py")
+                    print("• python create_demo_users.py")
+                    return
+                
+                print(f"Found {len(users)} demo users:")
+                print("-" * 80)
+                print(f"{'Employee ID':15} {'Role':25} {'Active':8} {'Created':20}")
+                print("-" * 80)
+                
+                for user in users:
+                    status = "Yes" if user.is_active else "No"
+                    created = user.created_at.strftime('%Y-%m-%d %H:%M:%S') if user.created_at else "Unknown"
+                    print(f"{user.employee_id:15} {user.role:25} {status:8} {created:20}")
+                
+                print("\n" + "=" * 50)
+                print("AUTHENTICATION CREDENTIALS")
+                print("=" * 50)
+                print("Use these credentials to log into the application:")
+                print()
+                print("Employee ID / Password:")
+                print("• admin / admin123 (System Administrator)")
+                print("• developer / dev123 (Developer User)")
+                print("• testuser / test123 (Test User)")
+                print("• hackathon / hackathon2025 (Hackathon Participant)")
+                print("• demo / demo123 (Demo User)")
+                print("\nNote: Passwords are hashed in the database for security.")
+                
+                # Check for any non-active users
+                inactive_users = [u for u in users if not u.is_active]
+                if inactive_users:
+                    print(f"\n[WARN] {len(inactive_users)} inactive users found:")
+                    for user in inactive_users:
+                        print(f"  • {user.employee_id} ({user.role})")
+                
+            except Exception as e:
+                print(f"[ERROR] Failed to view demo users: {e}")
+                import traceback
+                traceback.print_exc()
+    
     def run(self):
         """Main run loop."""
         print("🔍 BugSeek Database Viewer")
@@ -746,6 +812,8 @@ class BugSeekDatabaseViewer:
                 self.special_cases_explorer()
             elif choice == '9':
                 self.data_quality_check()
+            elif choice.upper() == 'A':
+                self.view_demo_users()
             else:
                 print("Invalid choice. Please try again.")
             

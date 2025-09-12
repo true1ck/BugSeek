@@ -301,6 +301,7 @@ def load_sample_data():
         from flask import Flask
         from backend.models import db, ErrorLog
         from config.settings import config
+        from backend.auth_service import AuthenticationService
         
         # Create Flask app
         app = Flask(__name__)
@@ -348,6 +349,10 @@ def load_sample_data():
             # Commit all changes
             db.session.commit()
             
+            # Create demo users as part of sample data
+            print("\n[INFO] Creating demo users as part of sample data...")
+            create_demo_users()
+            
             print(f"\n[OK] Successfully added {added_count} sample error logs!")
             return added_count
             
@@ -359,6 +364,41 @@ def load_sample_data():
         import traceback
         traceback.print_exc()
         return 0
+
+def create_demo_users():
+    """Create demo users for authentication."""
+    print("\n" + "=" * 40)
+    print("Creating Demo Users")
+    print("=" * 40)
+    
+    demo_users = [
+        {"employee_id": "admin", "password": "admin123", "role": "System Administrator", "is_active": True},
+        {"employee_id": "developer", "password": "dev123", "role": "Developer User", "is_active": True},
+        {"employee_id": "testuser", "password": "test123", "role": "Test User", "is_active": True},
+        {"employee_id": "hackathon", "password": "hackathon2025", "role": "Hackathon Participant", "is_active": True},
+        {"employee_id": "demo", "password": "demo123", "role": "Demo User", "is_active": True}
+    ]
+    
+    created_count = 0
+    for user_data in demo_users:
+        try:
+            result = AuthenticationService.create_user(
+                employee_id=user_data["employee_id"],
+                password=user_data["password"],
+                role=user_data["role"],
+                is_active=user_data["is_active"]
+            )
+            
+            if result["success"]:
+                print(f"[OK] Created user: {user_data['employee_id']} ({user_data['role']})")
+                created_count += 1
+            else:
+                print(f"[INFO] User {user_data['employee_id']} already exists")
+        except Exception as e:
+            print(f"[ERROR] Failed to create user {user_data['employee_id']}: {e}")
+    
+    print(f"\n[OK] Demo user setup completed. Created: {created_count}/5")
+    return created_count
 
 def show_data_summary():
     """Show summary of loaded data."""
@@ -429,7 +469,7 @@ def show_data_summary():
 def main():
     """Main function to load sample data."""
     print("BugSeek Sample Data Loader")
-    print("This script will populate your database with realistic sample data")
+    print("This script will populate your database with realistic sample data and demo users")
     print()
     
     # Load sample data
@@ -447,6 +487,12 @@ def main():
     print("SAMPLE DATA LOADING COMPLETE")
     print("=" * 60)
     print(f"[SUCCESS] Loaded {added_count} sample error logs!")
+    print("\nDemo users available for login:")
+    print("• admin / admin123 (System Administrator)")
+    print("• developer / dev123 (Developer User)")
+    print("• testuser / test123 (Test User)")
+    print("• hackathon / hackathon2025 (Hackathon Participant)")
+    print("• demo / demo123 (Demo User)")
     print("\nNext steps:")
     print("1. Run: python 4_view_database.py (to explore the data)")
     print("2. Start the application: python run.py")
