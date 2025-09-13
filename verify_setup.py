@@ -66,8 +66,10 @@ def verify_setup():
     
     # Check database path
     db_url = os.getenv('DATABASE_URL', '')
-    if 'G:/Projects/Hackathon/Problem2/BugSeek' in db_url:
-        print("✅ Database path configured correctly")
+    if db_url.startswith('sqlite:///instance/') or db_url.startswith('sqlite:///./instance/'):
+        print("✅ Database path configured correctly (relative)")
+    elif 'sqlite:///' in db_url:
+        print("✅ Database path configured (absolute)")
     else:
         print("⚠️  Database path may need adjustment")
     

@@ -37,7 +37,7 @@ python run.py
 ## 📋 What's Fixed in .env.mediatek
 
 ### ✅ Database Configuration
-- **Fixed absolute path**: `sqlite:///G:/Projects/Hackathon/Problem2/BugSeek/instance/bugseek.db`
+- **Relative path**: `sqlite:///instance/bugseek.db` (portable across systems)
 - **SQLAlchemy settings**: Proper tracking configuration
 
 ### ✅ API Configuration (Critical)
@@ -96,7 +96,7 @@ When running, access these URLs:
 ### If APIs stop working after copying .env.mediatek to .env:
 
 ✅ **FIXED!** The new `.env.mediatek` includes all necessary configurations:
-- Database path (absolute path for Windows)
+- Database path (relative path - portable across systems)
 - API configuration for frontend-backend communication  
 - CORS settings for cross-origin requests
 - All Flask and upload settings
@@ -115,7 +115,7 @@ python run.py
 ```
 
 ### Common Issues Fixed:
-- ❌ Database path issues → ✅ Fixed with absolute path
+- ❌ Database path issues → ✅ Fixed with relative path (portable)
 - ❌ Frontend-backend API communication → ✅ Fixed with proper API_VERSION and BACKEND_API_URL
 - ❌ CORS errors → ✅ Fixed with CORS_ORIGINS=*
 - ❌ File upload failures → ✅ Fixed with proper UPLOAD_FOLDER and MAX_CONTENT_LENGTH
