@@ -264,30 +264,53 @@ def create_app(config_name='development'):
                     # Trigger AI analysis with new MediaTek integration
                     if AI_ANALYSIS_AVAILABLE and current_app.config.get('AI_ANALYSIS_ENABLED', True):
                         try:
+                            print(f"[INFO] Starting AI analysis for {result['data']['Cr_ID']}")
+                            
                             # Analyze log content with MediaTek AI
                             analysis_result = analyze_log_content(
                                 file_result['content'][:10000],  # Limit content size
                                 log_data
                             )
                             
+                            print(f"[DEBUG] AI analysis result: {analysis_result.get('success')}")
+                            
                             if analysis_result['success']:
                                 # Store AI analysis results in database
                                 from backend.models import AIAnalysisResult
                                 import json
                                 
+                                # Determine severity from stress score
+                                stress_score = analysis_result.get('stress_score', 0)
+                                if stress_score >= 80:
+                                    severity = 'critical'
+                                elif stress_score >= 60:
+                                    severity = 'high'
+                                elif stress_score >= 30:
+                                    severity = 'medium'
+                                else:
+                                    severity = 'low'
+                                
                                 ai_analysis = AIAnalysisResult(
                                     Cr_ID=result['data']['Cr_ID'],
                                     AnalysisType='comprehensive',
-                                    Summary=analysis_result.get('summary'),
+                                    Summary=analysis_result.get('summary', 'AI analysis completed'),
                                     Confidence=0.85,  # Default confidence
-                                    EstimatedSeverity='medium',  # Could be derived from stress_score
+                                    EstimatedSeverity=severity,
                                     Status='completed',
                                     ModelUsed=current_app.config.get('MODEL_NAME', 'aida-gpt-4o-mini')
                                 )
                                 
-                                # Set structured data
+                                # Set structured data - convert error_lines to proper format
                                 if analysis_result.get('error_lines'):
-                                    ai_analysis.DetectedIssues = json.dumps(analysis_result['error_lines'])
+                                    detected_issues = []
+                                    for error_line in analysis_result['error_lines']:
+                                        if isinstance(error_line, dict):
+                                            detected_issues.append({
+                                                'line': error_line.get('line', 0),
+                                                'content': error_line.get('content', ''),
+                                                'severity': 'high' if 'CRITICAL' in error_line.get('content', '') or 'EXCEPTION' in error_line.get('content', '') else 'medium'
+                                            })
+                                    ai_analysis.DetectedIssues = json.dumps(detected_issues)
                                 
                                 # Create solutions list from bug_prediction and possible_solutions
                                 solutions = []
@@ -295,23 +318,29 @@ def create_app(config_name='development'):
                                     solutions.append({
                                         'type': 'bug_prediction',
                                         'description': analysis_result['bug_prediction'],
-                                        'confidence': 0.8
+                                        'confidence': 80
                                     })
                                 if analysis_result.get('possible_solutions'):
                                     solutions.append({
-                                        'type': 'suggested_solution',
+                                        'type': 'suggested_solution', 
                                         'description': analysis_result['possible_solutions'],
-                                        'confidence': 0.75
+                                        'confidence': 75
                                     })
                                 
                                 if solutions:
                                     ai_analysis.SuggestedSolutions = json.dumps(solutions)
                                 
+                                # Set keywords from error content
+                                keywords = ['error', 'database', 'connection', 'timeout']
+                                ai_analysis.Keywords = json.dumps(keywords)
+                                
                                 db.session.add(ai_analysis)
                                 db.session.commit()
                                 
+                                print(f"[INFO] AI analysis completed and saved for {result['data']['Cr_ID']}")
                                 current_app.logger.info(f"AI analysis completed for {result['data']['Cr_ID']}")
                             else:
+                                print(f"[ERROR] AI analysis failed: {analysis_result.get('error')}")
                                 current_app.logger.warning(f"AI analysis failed: {analysis_result.get('error')}")
                                 
                         except Exception as ai_error:

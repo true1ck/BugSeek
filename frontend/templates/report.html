@@ -807,6 +807,30 @@
 .detected-issues-list {
     display: grid;
     gap: 1rem;
+    max-height: 400px;
+    overflow-y: auto;
+    overflow-x: hidden;
+    padding-right: 0.5rem;
+}
+
+/* Custom scrollbar for detected issues */
+.detected-issues-list::-webkit-scrollbar {
+    width: 8px;
+}
+
+.detected-issues-list::-webkit-scrollbar-track {
+    background: rgba(0, 0, 0, 0.1);
+    border-radius: 4px;
+}
+
+.detected-issues-list::-webkit-scrollbar-thumb {
+    background: rgba(0, 0, 0, 0.3);
+    border-radius: 4px;
+    transition: background 0.2s ease;
+}
+
+.detected-issues-list::-webkit-scrollbar-thumb:hover {
+    background: rgba(0, 0, 0, 0.5);
 }
 
 .issue-item {
