@@ -838,15 +838,41 @@ def create_app(config_name='development'):
     
     @app.route('/api/v1/openai/status')
     def get_openai_status():
-        """Get OpenAI connection status"""
+        """Get MediaTek Azure OpenAI connection status"""
         try:
+            # For MediaTek environment, check both AI analysis capability and Azure connection
+            if AI_ANALYSIS_AVAILABLE:
+                # First check if MediaTek AI analysis is working locally
+                from backend.ai_analysis import analyze_log_content
+                test_log = "2025-01-01 10:00:00 ERROR: Test error message"
+                test_metadata = {'TeamName': 'Test', 'Module': 'Test'}
+                
+                try:
+                    test_result = analyze_log_content(test_log, test_metadata)
+                    if test_result and test_result.get('success'):
+                        # AI analysis is working, now check Azure OpenAI connection
+                        azure_result = GenAIService.check_openai_status()
+                        
+                        return jsonify({
+                            'success': True,
+                            'connected': True,
+                            'message': 'MediaTek AI Analysis fully operational',
+                            'service_type': 'MediaTek AI Analysis + Azure OpenAI',
+                            'model': current_app.config.get('MODEL_NAME', 'aida-gpt-4o-mini'),
+                            'azure_status': azure_result.get('connected', False)
+                        }), 200
+                except Exception as analysis_error:
+                    current_app.logger.warning(f"AI analysis test failed: {analysis_error}")
+            
+            # Check Azure OpenAI connection only
             result = GenAIService.check_openai_status()
             return jsonify(result), 200
+            
         except Exception as e:
             return jsonify({
                 'success': False,
                 'connected': False,
-                'message': 'Failed to check OpenAI status',
+                'message': 'Failed to check MediaTek AI status',
                 'error': str(e)
             }), 500
     

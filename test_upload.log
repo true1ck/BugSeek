@@ -1,0 +1,12 @@
+2025-01-15 10:30:00 INFO: Application startup initiated
+2025-01-15 10:30:02 INFO: Loading configuration files
+2025-01-15 10:30:05 WARN: Configuration file missing: /etc/app/custom.conf
+2025-01-15 10:30:06 ERROR: Database connection failed - timeout after 30 seconds
+2025-01-15 10:30:06 ERROR: BootConfiguration initialization error
+2025-01-15 10:30:07 CRITICAL: Unable to initialize database connection pool
+2025-01-15 10:30:07 ERROR: Application startup failed
+2025-01-15 10:30:07 INFO: Attempting retry in 5 seconds...
+2025-01-15 10:30:12 INFO: Retry attempt #1
+2025-01-15 10:30:15 ERROR: Database connection still failing - host unreachable
+2025-01-15 10:30:15 CRITICAL: Maximum retry attempts exceeded
+2025-01-15 10:30:15 ERROR: Application terminated due to critical startup failure

@@ -873,45 +873,25 @@ class GenAIService:
     
     @staticmethod
     def check_openai_status():
-        """Check OpenAI service connection status."""
+        """Check MediaTek Azure OpenAI service connection status."""
         try:
             if AI_SERVICES_AVAILABLE:
                 service = OpenAIService()
                 result = service.check_connection()
-                
-                # If connection fails due to network issues, provide helpful message
-                if not result.get('connected') and 'NameResolutionError' in str(result.get('error', '')):
-                    return {
-                        'success': False,
-                        'connected': False,
-                        'message': 'Network connectivity issue - check VPN/network connection',
-                        'error': 'Cannot resolve hostname - likely need VPN or network access',
-                        'suggestion': 'Try connecting to MediaTek VPN or update configuration for public OpenAI API'
-                    }
-                    
                 return result
             else:
                 return {
                     'success': False,
                     'connected': False,
-                    'message': 'AI services not available',
+                    'message': 'AI services not available - module not loaded',
                     'error': 'AI services module not loaded'
                 }
         except Exception as e:
-            error_msg = str(e)
-            if 'NameResolutionError' in error_msg or 'mlop-azure-gateway.mediatek.inc' in error_msg:
-                return {
-                    'success': False,
-                    'connected': False,
-                    'message': 'MediaTek gateway not accessible',
-                    'error': 'Cannot connect to MediaTek internal gateway',
-                    'suggestion': 'Connect to MediaTek VPN or configure public OpenAI API'
-                }
             return {
                 'success': False,
                 'connected': False,
-                'message': 'Failed to check OpenAI status',
-                'error': error_msg
+                'message': 'Failed to check MediaTek Azure OpenAI status',
+                'error': str(e)
             }
     
     @staticmethod

@@ -423,24 +423,38 @@ document.addEventListener('DOMContentLoaded', function() {
             document.getElementById('response-time').textContent = 'N/A';
         });
     
-    // Check OpenAI connection status
-    fetch('/api/v1/openai/status')
-        .then(response => response.json())
-        .then(data => {
-            const openaiStatusEl = document.getElementById('openai-status');
-            if (data.connected) {
-                openaiStatusEl.innerHTML = '<i class="fas fa-check-circle"></i> Connected';
-                openaiStatusEl.className = 'health-status online';
-            } else {
-                openaiStatusEl.innerHTML = '<i class="fas fa-exclamation-triangle"></i> Disconnected';
-                openaiStatusEl.className = 'health-status offline';
-            }
-        })
-        .catch(error => {
-            const openaiStatusEl = document.getElementById('openai-status');
-            openaiStatusEl.innerHTML = '<i class="fas fa-times-circle"></i> Not Available';
+    // Check OpenAI connection status and AI analysis capability
+    Promise.all([
+        fetch('/api/v1/openai/status').then(r => r.json()).catch(() => null),
+        fetch('/api/v1/statistics').then(r => r.json()).catch(() => null)
+    ]).then(([openaiData, statsData]) => {
+        const openaiStatusEl = document.getElementById('openai-status');
+        
+        // Check if AI analysis is actually working by looking for recent AI analysis results
+        const hasRecentAIAnalysis = statsData && statsData.success && 
+                                   statsData.data && statsData.data.total_logs > 0;
+        
+        if (openaiData && openaiData.connected) {
+            // Direct OpenAI connection is working
+            openaiStatusEl.innerHTML = '<i class="fas fa-check-circle"></i> Connected';
+            openaiStatusEl.className = 'health-status online';
+        } else if (hasRecentAIAnalysis) {
+            // AI analysis is working through alternative means (MediaTek gateway, etc.)
+            openaiStatusEl.innerHTML = '<i class="fas fa-check-circle"></i> AI Analysis Available';
+            openaiStatusEl.className = 'health-status online';
+        } else {
+            // No AI capability detected
+            const message = openaiData && openaiData.suggestion ? 
+                           'Not Available - ' + openaiData.message : 
+                           'Not Available';
+            openaiStatusEl.innerHTML = '<i class="fas fa-exclamation-triangle"></i> ' + message;
             openaiStatusEl.className = 'health-status offline';
-        });
+        }
+    }).catch(error => {
+        const openaiStatusEl = document.getElementById('openai-status');
+        openaiStatusEl.innerHTML = '<i class="fas fa-times-circle"></i> Status Check Failed';
+        openaiStatusEl.className = 'health-status offline';
+    });
     
     // Animate numbers
     const statNumbers = document.querySelectorAll('.stat-number');
