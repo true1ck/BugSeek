@@ -485,19 +485,31 @@ class SimilarLogMatch(db.Model):
 def create_tables(app):
     """Create all database tables and ensure new columns exist."""
     with app.app_context():
-        db.create_all()
-        # Ensure new column DetectedIssues exists for AIAnalysisResult (SQLite-safe)
         try:
-            engine_name = db.engine.dialect.name
-            if engine_name == 'sqlite':
-                rows = db.session.execute(text("PRAGMA table_info(ai_analysis_results)")).fetchall()
-                cols = [r[1] for r in rows]
-                if 'DetectedIssues' not in cols:
-                    db.session.execute(text("ALTER TABLE ai_analysis_results ADD COLUMN DetectedIssues TEXT"))
-                    db.session.commit()
+            # Create all tables
+            db.create_all()
+            
+            # Ensure new column DetectedIssues exists for AIAnalysisResult (SQLite-safe)
+            try:
+                engine_name = db.engine.dialect.name
+                if engine_name == 'sqlite':
+                    # Check if ai_analysis_results table exists first
+                    from sqlalchemy import inspect
+                    inspector = inspect(db.engine)
+                    if 'ai_analysis_results' in inspector.get_table_names():
+                        rows = db.session.execute(text("PRAGMA table_info(ai_analysis_results)")).fetchall()
+                        cols = [r[1] for r in rows]
+                        if 'DetectedIssues' not in cols:
+                            db.session.execute(text("ALTER TABLE ai_analysis_results ADD COLUMN DetectedIssues TEXT"))
+                            db.session.commit()
+                            print("[OK] Added DetectedIssues column to ai_analysis_results")
+            except Exception as e:
+                # Non-fatal; log if needed
+                print(f"[WARNING] Could not ensure DetectedIssues column: {e}")
+                
         except Exception as e:
-            # Non-fatal; log if needed
-            print(f"Warning: could not ensure DetectedIssues column: {e}")
+            print(f"[ERROR] Failed to create database tables: {e}")
+            raise
         
 def init_db(app):
     """Initialize database with Flask app."""

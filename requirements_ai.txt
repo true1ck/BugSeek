@@ -1,0 +1,16 @@
+# AI Analysis Dependencies for BugSeek MediaTek Integration
+openai>=1.35.0
+python-dotenv>=1.0.0
+networkx>=3.1
+matplotlib>=3.7.0
+numpy>=1.24.0
+scikit-learn>=1.3.0
+regex>=2023.8.8
+
+# Existing dependencies should also be installed
+flask>=2.3.0
+flask-sqlalchemy>=3.0.0
+flask-cors>=4.0.0
+flask-restx>=1.3.0
+werkzeug>=2.3.0
+requests>=2.31.0

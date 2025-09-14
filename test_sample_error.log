@@ -1,0 +1,13 @@
+2025-01-14 10:30:00 INFO Application started successfully
+2025-01-14 10:30:05 INFO Loading database configuration
+2025-01-14 10:30:08 ERROR Failed to connect to database server at localhost:3306
+2025-01-14 10:30:08 ERROR Connection timeout after 30 seconds
+2025-01-14 10:30:10 WARN Attempting to reconnect in 5 seconds
+2025-01-14 10:30:15 ERROR Second connection attempt failed
+2025-01-14 10:30:16 CRITICAL Database unavailable - switching to offline mode
+2025-01-14 10:30:20 EXCEPTION java.sql.SQLException: Communications link failure
+2025-01-14 10:30:20 EXCEPTION at com.mysql.jdbc.ConnectionImpl.connect(ConnectionImpl.java:148)
+2025-01-14 10:30:25 ERROR User authentication module failed to initialize
+2025-01-14 10:30:30 WARN Performance degraded - response time over 5 seconds
+2025-01-14 10:30:35 FAIL Health check endpoint returned 500
+2025-01-14 10:30:40 INFO Attempting graceful shutdown

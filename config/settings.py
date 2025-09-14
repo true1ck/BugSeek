@@ -6,15 +6,30 @@ load_dotenv()
 
 # Compute project root (one level up from this config directory)
 PROJECT_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), os.pardir))
-DEFAULT_SQLITE_PATH = os.path.join(PROJECT_ROOT, 'bugseek.db')
+DEFAULT_SQLITE_PATH = os.path.join(PROJECT_ROOT, 'instance', 'bugseek.db')
 # Ensure Windows paths are normalized for SQLAlchemy URI
 DEFAULT_SQLITE_URI = f"sqlite:///{DEFAULT_SQLITE_PATH.replace('\\\\', '/').replace('\\', '/')}"
+
+def get_database_uri():
+    """Get database URI with proper path resolution."""
+    db_url = os.getenv('DATABASE_URL')
+    if db_url:
+        # If relative path is specified in env var, make it absolute based on project root
+        if db_url.startswith('sqlite:///') and not db_url[10:].startswith('/'):
+            # Extract relative path after sqlite:///
+            rel_path = db_url[10:]
+            abs_path = os.path.join(PROJECT_ROOT, rel_path)
+            # Normalize path for SQLAlchemy
+            abs_path = abs_path.replace('\\', '/')
+            return f"sqlite:///{abs_path}"
+        return db_url
+    return DEFAULT_SQLITE_URI
 
 class Config:
     """Base configuration class."""
     
-    # Database Configuration - prefer env var, else absolute sqlite path in project root
-    SQLALCHEMY_DATABASE_URI = os.getenv('DATABASE_URL', DEFAULT_SQLITE_URI)
+    # Database Configuration - prefer env var, else compute absolute path from project root
+    SQLALCHEMY_DATABASE_URI = get_database_uri()
     SQLALCHEMY_TRACK_MODIFICATIONS = os.getenv('SQLALCHEMY_TRACK_MODIFICATIONS', 'False').lower() == 'true'
     
     # Flask Configuration

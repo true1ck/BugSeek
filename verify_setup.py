@@ -66,8 +66,12 @@ def verify_setup():
     
     # Check database path
     db_url = os.getenv('DATABASE_URL', '')
-    if db_url.startswith('sqlite:///instance/') or db_url.startswith('sqlite:///./instance/'):
+    if db_url.startswith('sqlite:///instance/'):
         print("✅ Database path configured correctly (relative)")
+    elif db_url.startswith('sqlite:///./instance/'):
+        print("✅ Database path configured correctly (relative)")
+    elif 'sqlite:///' in db_url and not db_url[10:].startswith('/'):
+        print("✅ Database path configured (relative, will be resolved to absolute)")
     elif 'sqlite:///' in db_url:
         print("✅ Database path configured (absolute)")
     else:

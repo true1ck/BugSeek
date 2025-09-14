@@ -19,6 +19,14 @@ try:
 except ImportError:
     AI_SERVICES_AVAILABLE = False
 
+# Import AI analysis functions
+try:
+    from backend.ai_analysis import analyze_log_content
+    AI_ANALYSIS_AVAILABLE = True
+except ImportError as e:
+    print(f"[WARNING] AI analysis module not available: {e}")
+    AI_ANALYSIS_AVAILABLE = False
+
 def create_app(config_name='development'):
     """Application factory pattern."""
     app = Flask(__name__)
@@ -40,9 +48,32 @@ def create_app(config_name='development'):
         prefix='/api/v1'
     )
     
-    # Create database tables
+    # Create database tables (conditional - only if needed)
     with app.app_context():
-        create_tables(app)
+        try:
+            # Check if database exists and has tables
+            from sqlalchemy import inspect
+            inspector = inspect(db.engine)
+            existing_tables = inspector.get_table_names()
+            
+            if not existing_tables:
+                # Database is empty, create tables
+                print("[INFO] Creating database tables...")
+                create_tables(app)
+                print(f"[OK] Created {len(inspector.get_table_names())} database tables")
+            else:
+                # Database exists, just ensure it's working
+                db.session.execute(text('SELECT 1'))
+                print(f"[OK] Database connected with {len(existing_tables)} existing tables")
+        except Exception as e:
+            print(f"[WARNING] Database initialization issue: {e}")
+            print("[INFO] Attempting to create tables anyway...")
+            try:
+                create_tables(app)
+                print("[OK] Database tables created successfully")
+            except Exception as create_error:
+                print(f"[ERROR] Failed to create database tables: {create_error}")
+                print("[INFO] Application will continue without database functionality")
     
     # Define API models for Swagger documentation
     error_log_model = api.model('ErrorLog', {
@@ -230,8 +261,64 @@ def create_app(config_name='development'):
                             {'Embedding': nlp_result['embeddings']}
                         )
                     
-                    # Trigger AI analysis if available
-                    if AI_SERVICES_AVAILABLE and current_app.config.get('AI_ANALYSIS_ENABLED', True):
+                    # Trigger AI analysis with new MediaTek integration
+                    if AI_ANALYSIS_AVAILABLE and current_app.config.get('AI_ANALYSIS_ENABLED', True):
+                        try:
+                            # Analyze log content with MediaTek AI
+                            analysis_result = analyze_log_content(
+                                file_result['content'][:10000],  # Limit content size
+                                log_data
+                            )
+                            
+                            if analysis_result['success']:
+                                # Store AI analysis results in database
+                                from backend.models import AIAnalysisResult
+                                import json
+                                
+                                ai_analysis = AIAnalysisResult(
+                                    Cr_ID=result['data']['Cr_ID'],
+                                    AnalysisType='comprehensive',
+                                    Summary=analysis_result.get('summary'),
+                                    Confidence=0.85,  # Default confidence
+                                    EstimatedSeverity='medium',  # Could be derived from stress_score
+                                    Status='completed',
+                                    ModelUsed=current_app.config.get('MODEL_NAME', 'aida-gpt-4o-mini')
+                                )
+                                
+                                # Set structured data
+                                if analysis_result.get('error_lines'):
+                                    ai_analysis.DetectedIssues = json.dumps(analysis_result['error_lines'])
+                                
+                                # Create solutions list from bug_prediction and possible_solutions
+                                solutions = []
+                                if analysis_result.get('bug_prediction'):
+                                    solutions.append({
+                                        'type': 'bug_prediction',
+                                        'description': analysis_result['bug_prediction'],
+                                        'confidence': 0.8
+                                    })
+                                if analysis_result.get('possible_solutions'):
+                                    solutions.append({
+                                        'type': 'suggested_solution',
+                                        'description': analysis_result['possible_solutions'],
+                                        'confidence': 0.75
+                                    })
+                                
+                                if solutions:
+                                    ai_analysis.SuggestedSolutions = json.dumps(solutions)
+                                
+                                db.session.add(ai_analysis)
+                                db.session.commit()
+                                
+                                current_app.logger.info(f"AI analysis completed for {result['data']['Cr_ID']}")
+                            else:
+                                current_app.logger.warning(f"AI analysis failed: {analysis_result.get('error')}")
+                                
+                        except Exception as ai_error:
+                            current_app.logger.error(f"AI analysis failed: {ai_error}")
+                            
+                    # Fallback to old AI services if available
+                    elif AI_SERVICES_AVAILABLE and current_app.config.get('AI_ANALYSIS_ENABLED', True):
                         try:
                             ai_service = AIAnalysisService()
                             analysis_result = ai_service.analyze_error_log(
@@ -240,7 +327,7 @@ def create_app(config_name='development'):
                                 log_data
                             )
                         except Exception as ai_error:
-                            current_app.logger.error(f"AI analysis failed: {ai_error}")
+                            current_app.logger.error(f"Fallback AI analysis failed: {ai_error}")
                     
                     report_url = f"/api/v1/reports/{result['data']['Cr_ID']}"
                     return {
